@@ -480,6 +480,17 @@ class PushupsCoachApp {
 let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new PushupsCoachApp();
+    // Update metrics display from analysisData if present
+    if (typeof analysisData !== 'undefined' && analysisData) {
+        const pushupCountEl = document.getElementById('pushupCount');
+        const formScoreEl = document.getElementById('formScore');
+        const durationEl = document.getElementById('duration');
+        const avgRepTimeEl = document.getElementById('avgRepTime');
+        if (pushupCountEl) pushupCountEl.textContent = analysisData.rep_count ?? 0;
+        if (formScoreEl) formScoreEl.textContent = (analysisData.form_score ?? 0) + '%';
+        if (durationEl) durationEl.textContent = (analysisData.duration ? analysisData.duration.toFixed(1) : 0) + 's';
+        if (avgRepTimeEl) avgRepTimeEl.textContent = (analysisData.avg_rep_time ? analysisData.avg_rep_time.toFixed(1) : 0) + 's';
+    }
     const realtimeBtn = document.getElementById('realtimeModeBtn');
     if (!realtimeBtn) return;
 

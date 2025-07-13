@@ -149,46 +149,103 @@ class VideoProcessor:
             }
     
     def _analyze_pushups(self, frames_data: List[Dict]) -> Dict:
-        """Analyze pushup form and count repetitions, tracking per-rep form scores."""
+        """Analyze pushup form and count repetitions, tracking per-rep form scores. Output matches preintegration structure."""
         if not frames_data:
             return self._get_empty_analysis()
         frame_analyses = []
-        rep_counter = RepCounter(fps=30, debug=True)  # Set debug=True for systematic logging
-        for frame_data in frames_data:
-            analysis = self._analyze_frame(frame_data['landmarks'])
+        rep_breakdown = []
+        rep_in_progress = False
+        rep_start_frame = None
+        rep_start_time = None
+        rep_elbow_angles = []
+        rep_body_angles = []
+        rep_shoulder_hip = []
+        rep_form_scores = []
+        all_form_scores = []
+        pushup_count = 0
+        valid_reps = 0
+        partial_reps = 0
+        false_reps = 0
+        fps = 30
+        for i, frame_data in enumerate(frames_data):
+            analysis = self._analyze_frame(frame_data['landmarks'], frame_data['frame'].shape[1], frame_data['frame'].shape[0])
             frame_analyses.append({
                 'timestamp': frame_data['timestamp'],
                 'analysis': analysis
             })
-            rep_counter.process_frame(
-                timestamp=frame_data['timestamp'],
-                elbow_angle=analysis['elbow_angle'],
-                body_angle=analysis['body_angle'],
-                form_score=analysis['form_score']
-            )
-        reps = rep_counter.get_reps()
-        all_rep_form_scores = [score for rep in reps for score in rep['form_scores']]
-        avg_form_score = int(np.mean(all_rep_form_scores)) if all_rep_form_scores else 0
-        rep_count = len(reps)
-        rep_durations = [rep['duration'] for rep in reps]
-        avg_rep_time = round(np.mean(rep_durations), 2) if rep_durations else 0
-        feedback = self._generate_feedback({'form_score': avg_form_score, 'avg_rep_time': avg_rep_time}, frame_analyses)
+            state = analysis['state']
+            elbow_angle = analysis['elbow_angle']
+            body_angle = analysis['body_angle']
+            shoulder_hip = analysis['shoulder_hip_alignment']
+            form_score = analysis['form_score']
+            all_form_scores.append(form_score)
+            # Rep state machine (simple, can be enhanced with smoothing)
+            if state == 'down' and not rep_in_progress:
+                rep_in_progress = True
+                rep_start_frame = i
+                rep_start_time = frame_data['timestamp']
+                rep_elbow_angles = [elbow_angle]
+                rep_body_angles = [body_angle]
+                rep_shoulder_hip = [shoulder_hip]
+                rep_form_scores = [form_score]
+            elif state == 'down' and rep_in_progress:
+                rep_elbow_angles.append(elbow_angle)
+                rep_body_angles.append(body_angle)
+                rep_shoulder_hip.append(shoulder_hip)
+                rep_form_scores.append(form_score)
+            elif state == 'up' and rep_in_progress:
+                # End of rep
+                rep_end_frame = i
+                rep_end_time = frame_data['timestamp']
+                duration = rep_end_time - rep_start_time
+                min_elbow = min(rep_elbow_angles) if rep_elbow_angles else 0
+                avg_body = np.mean(rep_body_angles) if rep_body_angles else 0
+                avg_shoulder_hip = np.mean(rep_shoulder_hip) if rep_shoulder_hip else 0
+                avg_form = np.mean(rep_form_scores) if rep_form_scores else 0
+                # Defensive: only add rep if rep_start_frame is not None
+                if rep_start_frame is not None:
+                    is_posture_good = avg_body > 95
+                    is_depth_good = min_elbow < 115
+                    is_form_good = avg_form >= 40
+                    if is_posture_good and is_depth_good and is_form_good:
+                        rep_class = 'proper'
+                        valid_reps += 1
+                    elif is_posture_good or is_depth_good:
+                        rep_class = 'partial'
+                        partial_reps += 1
+                    else:
+                        rep_class = 'false'
+                        false_reps += 1
+                    rep_breakdown.append({
+                        'class': rep_class,
+                        'elbow_angle': float(min_elbow),
+                        'body_angle': float(avg_body),
+                        'shoulder_hip_alignment': float(avg_shoulder_hip),
+                        'form_score': float(avg_form),
+                        'duration': float(duration),
+                        'frame_start': int(rep_start_frame),
+                        'frame_end': int(rep_end_frame)
+                    })
+                    pushup_count += 1
+                rep_in_progress = False
+        # Session metrics
+        total_reps = valid_reps + partial_reps
+        avg_form_score = np.mean(all_form_scores) if all_form_scores else 0
+        rep_durations = [rep['duration'] for rep in rep_breakdown]
+        avg_rep_time = np.mean(rep_durations) if rep_durations else 0
+        duration = frames_data[-1]['timestamp'] if frames_data else 0
+        # Output structure matches preintegration
         return {
-            'rep_count': rep_count,
-            'form_score': avg_form_score,
-            'duration': frames_data[-1]['timestamp'] if frames_data else 0,
-            'avg_rep_time': avg_rep_time,
-            'form_issues': feedback['issues'],
-            'recommendations': feedback['recommendations'],
+            'rep_count': int(total_reps),
+            'form_score': int(avg_form_score),
+            'duration': float(duration),
+            'avg_rep_time': float(avg_rep_time),
+            'valid_reps': int(valid_reps),
+            'partial_reps': int(partial_reps),
+            'invalid_reps': int(false_reps),
+            'rep_breakdown': rep_breakdown,
             'detailed_analysis': {
-                'repetitions': reps,
-                'frame_analyses': frame_analyses,
-                'metrics': {
-                    'form_score': avg_form_score,
-                    'avg_rep_time': avg_rep_time,
-                    'total_duration': frames_data[-1]['timestamp'] if frames_data else 0,
-                    'rep_count': rep_count
-                }
+                'frame_analyses': frame_analyses
             }
         }
     
@@ -202,78 +259,182 @@ class VideoProcessor:
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         pose_detector = PoseDetector()
-        
-        # Check if video needs rotation to landscape
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         portrait = height > width
         print(f"[DEBUG] Video dimensions: {width}x{height}, portrait: {portrait}")
         print(f"[DEBUG] Total frames: {total_frames}, FPS: {fps}")
-        
-        # Temporal smoothing for pose landmarks
         last_pose_landmarks = None
-        
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
                 break
-            
-            # Process every frame for continuous pose detection
-            # Stage 1: Rotate portrait to landscape BEFORE pose detection
             if portrait:
                 frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                if frame_count % 30 == 0:  # Log every 30 frames to avoid spam
+                if frame_count % 30 == 0:
                     print(f"[DEBUG] Frame {frame_count}: Rotated portrait to landscape")
-            
-            # Stage 2: Detect pose on the rotated frame
             landmarks, pose_landmarks = pose_detector.detect_pose(frame)
-            
-            # Temporal smoothing: use last good pose if current detection fails
+            # Convert landmarks list to dict by index for downstream compatibility
+            if isinstance(landmarks, list):
+                landmarks = {str(i): lm for i, lm in enumerate(landmarks)}
             if pose_landmarks is None and last_pose_landmarks is not None:
                 pose_landmarks = last_pose_landmarks
                 print(f"[DEBUG] Frame {frame_count}: Using last good pose landmarks")
             elif pose_landmarks is not None:
                 last_pose_landmarks = pose_landmarks
-                if frame_count % 30 == 0:  # Log every 30 frames to avoid spam
+                if frame_count % 30 == 0:
                     print(f"[DEBUG] Frame {frame_count}: Pose landmarks detected.")
-            elif frame_count % 30 == 0:  # Log every 30 frames to avoid spam
+            elif frame_count % 30 == 0:
                 print(f"[DEBUG] Frame {frame_count}: No pose landmarks detected.")
-            
             frames_data.append({
                 'frame_number': frame_count,
                 'timestamp': frame_count / fps,
-                'landmarks': landmarks,         # for analysis
-                'pose_landmarks': pose_landmarks, # for overlay
-                'frame': frame,                 # already rotated if needed
-                'rotated': portrait             # flag to indicate if frame was rotated
+                'landmarks': landmarks,
+                'pose_landmarks': pose_landmarks,
+                'frame': frame,
+                'rotated': portrait
             })
             frame_count += 1
         cap.release()
         self.logger.info(f"Extracted {len(frames_data)} frames with pose data using MediaPipe")
         return frames_data
     
-    def _analyze_frame(self, landmarks: Dict) -> Dict:
-        """Analyze pose in a single frame"""
-        if not landmarks:
-            return {'state': 'unknown', 'form_score': 0}
-        
-        # Calculate key angles and measurements
-        body_angle = self._calculate_body_angle(landmarks)
-        elbow_angle = self._calculate_elbow_angle(landmarks)
-        shoulder_hip_alignment = self._calculate_shoulder_hip_alignment(landmarks)
-        
-        # Determine pushup state
-        state = self._determine_state(elbow_angle, body_angle)
-        
-        # Calculate form score
-        form_score = self._calculate_form_score(elbow_angle, body_angle, shoulder_hip_alignment)
-        
+    def _analyze_frame(self, landmarks: Dict, frame_width: int = None, frame_height: int = None) -> Dict:
+        """Analyze pose in a single frame using preintegration logic for robustness. Requires frame_width for correct thresholding."""
+        default_result = {
+            'state': 'invalid',
+            'form_score': 0,
+            'body_angle': 0.0,
+            'elbow_angle': 0.0,
+            'shoulder_hip_alignment': 0.0
+        }
+        if not landmarks or not isinstance(landmarks, dict):
+            return default_result
+        # Debug: print landmark keys and normalize to strings
+        print(f'[DEBUG] Landmarks keys: {list(landmarks.keys())}')
+        landmarks = {str(k): v for k, v in landmarks.items()}
+        # Use MediaPipe indices for all keypoints
+        required_indices = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26]
+        # Check all required landmarks are present
+        if not all(str(idx) in landmarks for idx in required_indices):
+            print('[DEBUG] Missing key landmarks, classified as invalid')
+            return default_result
+        # Build fake landmark objects for compatibility, handle None values
+        class Lm: pass
+        lm = {}
+        for idx in required_indices:
+            pt = landmarks[str(idx)]
+            lm[idx] = Lm()
+            lm[idx].x = pt.get('x', 0.0) if pt.get('x', 0.0) is not None else 0.0
+            lm[idx].y = pt.get('y', 0.0) if pt.get('y', 0.0) is not None else 0.0
+            lm[idx].visibility = pt.get('visibility', 1.0) if pt.get('visibility', 1.0) is not None else 1.0
+        # Visibility check
+        avg_visibility = sum(lm[idx].visibility for idx in required_indices) / len(required_indices)
+        if avg_visibility < 0.4:
+            print(f'[DEBUG] Frame rejected: low visibility ({avg_visibility:.2f})')
+            return default_result
+        # Dynamic left/right
+        is_facing_right = lm[11].x < lm[12].x
+        if is_facing_right:
+            shoulder = (lm[11].x, lm[11].y)
+            elbow = (lm[13].x, lm[13].y)
+            wrist = (lm[15].x, lm[15].y)
+            hip = (lm[23].x, lm[23].y)
+            knee = (lm[25].x, lm[25].y)
+            left_shoulder = (lm[12].x, lm[12].y)
+            right_shoulder = (lm[11].x, lm[11].y)
+        else:
+            shoulder = (lm[12].x, lm[12].y)
+            elbow = (lm[14].x, lm[14].y)
+            wrist = (lm[16].x, lm[16].y)
+            hip = (lm[24].x, lm[24].y)
+            knee = (lm[26].x, lm[26].y)
+            left_shoulder = (lm[11].x, lm[11].y)
+            right_shoulder = (lm[12].x, lm[12].y)
+        # Calculate angles
+        def calc_angle(a, b, c):
+            a, b, c = np.array(a), np.array(b), np.array(c)
+            radians = np.arctan2(c[1]-b[1], c[0]-b[0]) - np.arctan2(a[1]-b[1], a[0]-b[0])
+            angle = np.abs(radians * 180.0 / np.pi)
+            return angle if angle <= 180 else 360 - angle
+        body_angle = calc_angle(shoulder, hip, knee)
+        elbow_angle = calc_angle(wrist, elbow, shoulder)
+        # Loosened state thresholds to match actual data
+        if body_angle < 90:
+            print(f'[DEBUG] Frame rejected: body_angle={body_angle:.1f} < 90 (too bent)')
+            return default_result
+        else:
+            if elbow_angle > 110:
+                state = 'up'
+            elif 45 <= elbow_angle <= 110:
+                state = 'down'
+            elif 85 < elbow_angle <= 145:
+                state = 'partial_down'
+            elif 100 < elbow_angle <= 145:
+                state = 'partial_up'
+            else:
+                print(f'[DEBUG] Frame rejected: elbow_angle={elbow_angle:.1f} not in any range')
+                return default_result
+        # Additional validation
+        if state in ['up', 'down', 'partial_down', 'partial_up']:
+            shoulder_y, hip_y = shoulder[1], hip[1]
+            # Use pixel-based threshold for y-difference (as in preintegration)
+            if frame_height is not None and isinstance(frame_height, int):
+                shoulder_y_px = shoulder_y * frame_height if shoulder_y <= 1.0 else shoulder_y
+                hip_y_px = hip_y * frame_height if hip_y <= 1.0 else hip_y
+            else:
+                shoulder_y_px = shoulder_y
+                hip_y_px = hip_y
+            try:
+                y_diff = abs(float(shoulder_y_px) - float(hip_y_px))
+            except Exception:
+                y_diff = 0.0
+            if y_diff < 10:
+                print(f'[DEBUG] Frame rejected: abs(shoulder_y - hip_y)={y_diff:.1f} < 10 (too horizontal)')
+                return default_result
+            # Use pixel-based threshold for shoulder width (as in preintegration)
+            if frame_width is not None and isinstance(frame_width, int):
+                left_shoulder_x_px = left_shoulder[0] * frame_width if left_shoulder[0] <= 1.0 else left_shoulder[0]
+                right_shoulder_x_px = right_shoulder[0] * frame_width if right_shoulder[0] <= 1.0 else right_shoulder[0]
+                try:
+                    shoulder_width = abs(float(left_shoulder_x_px) - float(right_shoulder_x_px))
+                except Exception:
+                    shoulder_width = 0.0
+                if shoulder_width > frame_width * 0.95:
+                    print(f'[DEBUG] Frame rejected: shoulder_width={shoulder_width:.2f} > {frame_width*0.95:.2f} (arms too wide)')
+                    return default_result
+            else:
+                try:
+                    shoulder_width = abs(float(left_shoulder[0]) - float(right_shoulder[0]))
+                except Exception:
+                    shoulder_width = 0.0
+                if shoulder_width > 0.95:
+                    print(f'[DEBUG] Frame rejected: shoulder_width={shoulder_width:.2f} > 0.95 (arms too wide)')
+                    return default_result
+        # Form score (preintegration logic)
+        if state in ['up', 'down', 'partial_down', 'partial_up']:
+            body_score = max(0, 100 - abs(body_angle - 180) * 2)
+            if state == 'down':
+                elbow_score = max(0, 100 - abs(elbow_angle - 90) * 2)
+            elif state == 'up':
+                elbow_score = max(0, 100 - abs(elbow_angle - 180) * 2)
+            else:
+                elbow_score = max(0, 100 - abs(elbow_angle - 135) * 1.5)
+            score = int((body_score * 0.6 + elbow_score * 0.4))
+        else:
+            score = 0
+        # Debug logging for first 20 frames
+        if not hasattr(self, '_debug_frame_count'):
+            self._debug_frame_count = 0
+        if self._debug_frame_count < 20:
+            print(f'[DEBUG] Frame {self._debug_frame_count}: state={state}, elbow_angle={elbow_angle:.1f}, form_score={score}')
+            self._debug_frame_count += 1
         return {
             'state': state,
-            'form_score': form_score,
+            'form_score': score,
             'body_angle': body_angle,
             'elbow_angle': elbow_angle,
-            'shoulder_hip_alignment': shoulder_hip_alignment
+            'shoulder_hip_alignment': y_diff
         }
     
     def _calculate_body_angle(self, landmarks: Dict) -> float:
@@ -555,7 +716,7 @@ class VideoProcessor:
             # Analyze all frames to get rep data
             frame_analyses = []
             for frame_data in frames_data:
-                analysis = self._analyze_frame(frame_data['landmarks'])
+                analysis = self._analyze_frame(frame_data['landmarks'], frame_data['frame'].shape[1], frame_data['frame'].shape[0])
                 frame_analyses.append({
                     'timestamp': frame_data['timestamp'],
                     'analysis': analysis
@@ -582,7 +743,7 @@ class VideoProcessor:
                     landmarks = frame_data.get('landmarks', None)
                     
                     # Analyze state for this frame
-                    frame_analysis = self._analyze_frame(landmarks) if landmarks else {'state': 'idle'}
+                    frame_analysis = self._analyze_frame(landmarks, frame.shape[1], frame.shape[0]) if landmarks else {'state': 'idle'}
                     state = frame_analysis.get('state', 'idle')
                     
                     # Increment rep count if this frame is where a rep ends

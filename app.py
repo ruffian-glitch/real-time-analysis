@@ -209,8 +209,15 @@ def results(session_id):
         analysis_data = file_handler.load_analysis_data(session_id)
         
         if analysis_data:
+            # Extract the actual analysis data from the nested structure
+            actual_analysis_data = analysis_data.get('analysis_data', analysis_data)
+            
+            # Add video_url to the analysis data if it exists at the top level
+            if 'video_url' in analysis_data and 'video_url' not in actual_analysis_data:
+                actual_analysis_data['video_url'] = analysis_data['video_url']
+            
             return render_template('results.html', 
-                                 analysis_data=analysis_data,
+                                 analysis_data=actual_analysis_data,
                                  session_id=session_id)
         else:
             return render_template('error.html', 
