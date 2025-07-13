@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - AI Pushups Coach v2</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="flex items-center space-x-2">
+                        <img src="{{ url_for('static', filename='KproSportLogo.svg') }}" alt="KproSport Logo" class="h-8 w-auto"/>
+                        <span class="text-xl font-semibold text-gray-800">AI Pushups Coach v2</span>
+                    </a>
+                </div>
+                <a href="/" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    New Analysis
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Video Section -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Your Pushup Analysis</h2>
+                    
+                    <!-- Video Player -->
+                    <div class="bg-black rounded-lg overflow-hidden mb-6" style="aspect-ratio: 16/9;">
+                        <video id="analysisVideo" controls class="w-full h-full">
+                            <source src="{{ url_for('serve_processed_file', filename=analysis_data.video_url.split('/')[-1]) if analysis_data.video_url else '#' }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                    
+                    <!-- Analysis Summary -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-blue-600">{{ analysis_data.analysis.rep_count if analysis_data.analysis and analysis_data.analysis.rep_count else 0 }}</div>
+                            <div class="text-sm text-gray-600">Pushups</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-green-600">{{ analysis_data.analysis.form_score if analysis_data.analysis and analysis_data.analysis.form_score else 0 }}%</div>
+                            <div class="text-sm text-gray-600">Form Score</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-purple-600">{{ "%.1f"|format(analysis_data.analysis.duration) if analysis_data.analysis and analysis_data.analysis.duration else 0 }}s</div>
+                            <div class="text-sm text-gray-600">Duration</div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-bold text-orange-600">{{ "%.1f"|format(analysis_data.analysis.avg_rep_time) if analysis_data.analysis and analysis_data.analysis.avg_rep_time else 0 }}s</div>
+                            <div class="text-sm text-gray-600">Avg Rep Time</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Issues -->
+                    {% if analysis_data.analysis and analysis_data.analysis.form_issues %}
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Form Issues Detected</h3>
+                        <ul class="space-y-2">
+                            {% for issue in analysis_data.analysis.form_issues %}
+                            <li class="flex items-center space-x-2 text-red-600">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span>{{ issue }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Recommendations -->
+                    {% if analysis_data.analysis and analysis_data.analysis.recommendations %}
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Recommendations</h3>
+                        <ul class="space-y-2">
+                            {% for rec in analysis_data.analysis.recommendations %}
+                            <li class="flex items-center space-x-2 text-green-600">
+                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span>{{ rec }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Chat Section -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-sm p-6 h-full">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">AI Coach Chat</h2>
+                    
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="space-y-4 mb-4 h-96 overflow-y-auto">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <div class="text-sm text-blue-800">
+                                <strong>AI Coach:</strong> Great job on your pushups! I can see you completed {{ analysis_data.analysis.rep_count if analysis_data.analysis and analysis_data.analysis.rep_count else 0 }} reps with a form score of {{ analysis_data.analysis.form_score if analysis_data.analysis and analysis_data.analysis.form_score else 0 }}%. How can I help you improve?
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Chat Input and Suggestions: make input full width, suggestions always below -->
+                    <div class="flex flex-col space-y-2">
+                        <input type="text" id="chatInput" placeholder="Ask me about your form..." 
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div id="chatSuggestions" class="flex flex-wrap gap-2"></div>
+                        <button id="sendMessage" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors w-full mt-2">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // LLM Chat functionality
+        const analysisData = {{ analysis_data.analysis | tojson | safe }};
+        
+        document.getElementById('sendMessage').addEventListener('click', sendMessage);
+        document.getElementById('chatInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addMessage('You: ' + message, 'bg-gray-50 text-gray-800');
+            input.value = '';
+            
+            // Show loading
+            const loadingId = addMessage('AI Coach: Thinking...', 'bg-blue-50 text-blue-800');
+            
+            try {
+                const response = await fetch('/api/llm/coaching', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: message,
+                        analysis_data: analysisData
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Remove loading message
+                    removeMessage(loadingId);
+                    
+                    // Add AI response
+                    addMessage('AI Coach: ' + data.response, 'bg-blue-50 text-blue-800');
+                    
+                    // Handle video timestamps if provided
+                    if (data.video_timestamps) {
+                        const [startTime, endTime] = data.video_timestamps;
+                        const video = document.getElementById('analysisVideo');
+                        if (video) {
+                            video.currentTime = startTime;
+                            video.play();
+                            setTimeout(() => {
+                                video.pause();
+                            }, (endTime - startTime) * 1000);
+                        }
+                    }
+                } else {
+                    removeMessage(loadingId);
+                    addMessage('AI Coach: Sorry, I encountered an error. Please try again.', 'bg-red-50 text-red-800');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                removeMessage(loadingId);
+                addMessage('AI Coach: Sorry, I\'m having trouble connecting. Please try again.', 'bg-red-50 text-red-800');
+            }
+        }
+        
+        function addMessage(text, className) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            const messageId = 'msg-' + Date.now();
+            messageDiv.id = messageId;
+            messageDiv.className = className + ' p-3 rounded-lg';
+            messageDiv.innerHTML = '<div class="text-sm">' + text + '</div>';
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            return messageId;
+        }
+        
+        function removeMessage(messageId) {
+            const messageDiv = document.getElementById(messageId);
+            if (messageDiv) {
+                messageDiv.remove();
+            }
+        }
+        
+        // Add example questions as clickable chips
+        const chatInput = document.getElementById('chatInput');
+        const suggestionsDiv = document.getElementById('chatSuggestions');
+        const exampleQuestions = [
+            "Show me my best rep",
+            "What was my worst rep?",
+            "How can I improve my form?",
+            "Show me rep #3",
+            "What's my average depth?",
+            "How many calories did I burn?"
+        ];
+        exampleQuestions.forEach(question => {
+            const chip = document.createElement('button');
+            chip.className = 'text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-full transition-colors';
+            chip.textContent = question;
+            chip.onclick = () => {
+                chatInput.value = question;
+                sendMessage();
+            };
+            suggestionsDiv.appendChild(chip);
+        });
+    </script>
+</body>
+</html> 

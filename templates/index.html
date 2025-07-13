@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Pushups Coach v2</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Poppins', Arial, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .chatgpt-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-bar {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .search-bar:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .upload-modal {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        }
+        
+        .upload-zone {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .kpro-logo-fixed {
+            position: fixed !important;
+            top: 20px;
+            right: 32px;
+            z-index: 1000;
+            background: none;
+            box-shadow: none;
+        }
+        
+        @media (max-width: 768px) {
+            .kpro-logo-fixed {
+                top: 8px;
+                right: 8px;
+                height: 32px;
+            }
+        }
+        
+        /* Loading animation */
+        .loading-dots {
+            display: inline-block;
+        }
+        
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Real-time mode button */
+        .realtime-btn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .realtime-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Header with Logo -->
+    <header class="w-full flex justify-end items-center py-4 px-8">
+        <a href="/" class="block" title="Home">
+            <img src="{{ url_for('static', filename='KproSportLogo.svg') }}" alt="KproSport Logo" class="h-7 w-auto kpro-logo-fixed" style="min-width: 72px;"/>
+        </a>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-8">
+        <!-- ChatGPT-style Container -->
+        <div class="chatgpt-container w-full max-w-4xl mx-auto p-8 md:p-12">
+            <!-- Title -->
+            <div class="text-center mb-12 fade-in">
+                <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-4 tracking-tight">
+                    AI Pushups Coach v2
+                </h1>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Get personalized pushup coaching with real-time form analysis and AI-powered feedback
+                </p>
+            </div>
+
+            <!-- Main Search Bar -->
+            <div class="mb-12 fade-in" style="animation-delay: 0.2s;">
+                <div class="search-bar p-6 md:p-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-1">
+                            <input 
+                                type="text" 
+                                id="mainSearchInput"
+                                placeholder="Ask me about pushups, form, or upload a video for analysis..."
+                                class="w-full text-lg md:text-xl bg-transparent border-none outline-none text-gray-700 placeholder-gray-500"
+                                disabled
+                            >
+                        </div>
+                        <button 
+                            id="uploadVideoBtn"
+                            class="upload-btn text-white px-6 py-3 rounded-lg font-semibold text-lg flex items-center space-x-2"
+                        >
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <span>Upload Video</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4 mb-12 fade-in" style="animation-delay: 0.3s;">
+                <button 
+                    id="realtimeModeBtn"
+                    class="realtime-btn text-white px-8 py-4 rounded-lg font-semibold text-lg flex items-center justify-center space-x-2"
+                >
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <span>Start Real-Time Analysis</span>
+                </button>
+            </div>
+
+            <!-- Feature Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in" style="animation-delay: 0.4s;">
+                <div class="feature-card p-6 rounded-xl text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Form Analysis</h3>
+                    <p class="text-gray-600">Get detailed analysis of your pushup form with AI-powered insights</p>
+                </div>
+
+                <div class="feature-card p-6 rounded-xl text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">AI Coaching</h3>
+                    <p class="text-gray-600">Personalized coaching tips and motivation from your AI fitness coach</p>
+                </div>
+
+                <div class="feature-card p-6 rounded-xl text-center">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-800 mb-2">Real-time Feedback</h3>
+                    <p class="text-gray-600">Live analysis with instant form correction and voice coaching</p>
+                </div>
+            </div>
+
+            <!-- Live Video Processing Section -->
+            <!-- Removed live video analysis card and controls for a cleaner homepage. The live camera feed and metrics will be shown after the user clicks the Start Real-Time Analysis button. -->
+
+            <!-- Quick Actions -->
+            <div class="text-center fade-in" style="animation-delay: 0.6s;">
+                <p class="text-gray-600 mb-4">Quick Actions</p>
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        How to do proper pushups
+                    </button>
+                    <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        Common form mistakes
+                    </button>
+                    <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        Pushup variations
+                    </button>
+                    <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                        Benefits of pushups
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="upload-modal w-full max-w-2xl p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Upload Video for Analysis</h2>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Upload Zone -->
+            <div id="uploadZone" class="upload-zone p-8 text-center mb-6">
+                <div id="uploadDefault" class="space-y-4">
+                    <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                        <svg class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-700 mb-2">Drop your video here</p>
+                        <p class="text-gray-500 mb-4">or click to browse</p>
+                        <button id="browseFiles" class="upload-btn text-white px-6 py-3 rounded-lg font-semibold">
+                            Choose File
+                        </button>
+                    </div>
+                    <input type="file" id="videoUpload" accept="video/*" class="hidden" />
+                </div>
+
+                <div id="uploadProgress" class="hidden space-y-4">
+                    <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                        <svg class="w-10 h-10 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-lg font-semibold text-gray-700 mb-2">Uploading<span class="loading-dots"></span></p>
+                        <p id="uploadFileName" class="text-gray-500"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pro Tips -->
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Pro Tips for Best Results
+                </h3>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li>• Ensure your entire body is visible in the frame</li>
+                    <li>• Use good lighting to avoid shadows</li>
+                    <li>• Record from a side angle for best form analysis</li>
+                    <li>• Keep the camera steady during recording</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Modal -->
+    <div id="processingModal" class="modal-overlay fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="upload-modal w-full max-w-md p-8 text-center">
+            <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Analyzing Your Pushups</h2>
+            <p id="processingMessage" class="text-gray-600 mb-6">Our AI is analyzing your form and counting your reps...</p>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="processingProgress" class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-time Analysis Modal -->
+    <!-- Removed old real-time analysis modal for new dynamic camera UI. -->
+
+    <!-- Results Container (Hidden by default) -->
+    <div id="resultsContainer" class="hidden w-full min-h-screen bg-gray-50">
+        <!-- Results content will be loaded here -->
+    </div>
+
+    <!-- Tailwind JIT: Hidden div to ensure all dynamic modal classes are included -->
+    <div class="hidden">
+      w-[90vw] h-[80vh] max-w-5xl max-h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-center overflow-hidden
+      absolute left-0 top-0 w-full h-full object-cover rounded-3xl bg-black
+      flex flex-col items-start space-y-2 bg-white bg-opacity-80 rounded-xl px-6 py-4 shadow-lg
+      text-4xl font-extrabold text-blue-600 drop-shadow-lg
+      text-xl font-semibold text-green-600 transition-colors
+      w-8 flex flex-col justify-end rounded-br-2xl rounded-bl-2xl
+      bg-white bg-opacity-90 rounded-xl shadow-lg px-6 py-3 flex items-center justify-center text-center text-lg font-bold text-gray-800 border-2 border-blue-200 animate-fadeIn
+      absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center space-x-8
+      bg-white bg-opacity-90 rounded-full shadow-lg p-2
+      bg-blue-600 text-white text-lg font-bold rounded-full px-6 py-3 shadow-lg
+      absolute top-6 right-8 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg text-lg transition
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='chatgpt_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='realtime.js') }}"></script>
+</body>
+</html> 
