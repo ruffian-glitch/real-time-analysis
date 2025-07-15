@@ -224,7 +224,7 @@ async function sendChatMessage() {
         }
         
         if (response.ok) {
-            addChatMessage(result.text_response, 'ai');
+            addChatMessage(result.response || result.text_response, 'ai');
             
             // Handle any actions
             if (result.action && result.action.type === 'play_segment') {
