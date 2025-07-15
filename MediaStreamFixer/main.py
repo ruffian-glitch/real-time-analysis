@@ -1,5 +1,14 @@
 import logging
 import os
+import sys
+
+# Add the MediaStreamFixer directory to the Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Set environment variables for OpenCV
+os.environ['OPENCV_VIDEOIO_PRIORITY_FFMPEG'] = '1'
+os.environ['OPENCV_VIDEOIO_DEBUG'] = '0'
+
 from app import app
 
 # Configure logging
@@ -31,7 +40,7 @@ def main():
             logger.warning("Static directory not found")
         
         # Start the Flask application
-        app.run(host='0.0.0.0', port=5000, debug=True)
+        app.run(debug=True, host='0.0.0.0', port=5000)
         
     except Exception as e:
         logger.error(f"Failed to start application: {e}")
