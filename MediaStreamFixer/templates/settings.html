@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - AI Fitness Coach</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body style="background-color: #f8f9fa;">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-bottom sticky-top">
+        <div class="container-fluid px-4">
+            <div class="d-flex justify-content-between align-items-center py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-dumbbell text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="h5 fw-bold text-dark mb-0">AI Fitness Coach</h1>
+                        <p class="text-muted mb-0 small">Settings</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <a href="/" class="btn btn-outline-primary me-3">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to App
+                    </a>
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container-fluid px-4 py-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="bg-white rounded-4 shadow-sm p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="h2 fw-bold text-dark mb-3">Settings</h2>
+                        <p class="h6 text-muted">Configure your AI Fitness Coach</p>
+                    </div>
+
+                    <!-- API Key Section -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-key text-primary me-2"></i>
+                            <h5 class="fw-semibold text-dark mb-0">Gemini API Key</h5>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>About Gemini API:</strong> The AI chat functionality requires a Google Gemini API key. 
+                            <a href="https://aistudio.google.com/apikey" target="_blank" class="alert-link">Get your free API key here</a>.
+                        </div>
+
+                        <!-- Current Status -->
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3">
+                                <div>
+                                    <strong>Status:</strong>
+                                    <span id="api-status" class="badge bg-secondary">Checking...</span>
+                                </div>
+                                <div id="current-key" class="text-muted small"></div>
+                            </div>
+                        </div>
+
+                        <!-- API Key Form -->
+                        <form id="api-key-form">
+                            <div class="mb-3">
+                                <label for="gemini-api-key" class="form-label">Enter your Gemini API Key:</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="gemini-api-key" placeholder="AIzaSy..." required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggle-password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Your API key will be stored for this session only. For permanent storage, add it to your Replit Secrets.
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary btn-lg" id="save-key-btn">
+                                    <span class="me-2">💾</span>
+                                    Save API Key
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="test-key-btn" disabled>
+                                    <span class="me-2">🧪</span>
+                                    Test Connection
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Success/Error Messages -->
+                        <div id="message-container" class="mt-3"></div>
+                    </div>
+
+                    <!-- Help Section -->
+                    <div class="border-top pt-4">
+                        <h6 class="fw-semibold text-dark mb-3">
+                            <i class="fas fa-question-circle me-2"></i>
+                            How to get your Gemini API Key
+                        </h6>
+                        <ol class="text-muted">
+                            <li>Visit <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a></li>
+                            <li>Sign in with your Google account</li>
+                            <li>Click "Create API Key"</li>
+                            <li>Copy the generated key and paste it above</li>
+                        </ol>
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Security Note:</strong> Never share your API key publicly. For production use, add it to your Replit Secrets.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('api-key-form');
+            const apiKeyInput = document.getElementById('gemini-api-key');
+            const togglePasswordBtn = document.getElementById('toggle-password');
+            const saveKeyBtn = document.getElementById('save-key-btn');
+            const testKeyBtn = document.getElementById('test-key-btn');
+            const messageContainer = document.getElementById('message-container');
+            const apiStatus = document.getElementById('api-status');
+            const currentKey = document.getElementById('current-key');
+
+            // Load current status
+            loadApiKeyStatus();
+
+            // Toggle password visibility
+            togglePasswordBtn.addEventListener('click', function() {
+                const type = apiKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                apiKeyInput.setAttribute('type', type);
+                togglePasswordBtn.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+
+            // Enable test button when key is entered
+            apiKeyInput.addEventListener('input', function() {
+                testKeyBtn.disabled = !apiKeyInput.value.trim();
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveApiKey();
+            });
+
+            // Test button
+            testKeyBtn.addEventListener('click', function() {
+                testApiKey();
+            });
+
+            async function loadApiKeyStatus() {
+                try {
+                    const response = await fetch('/api/settings/gemini-key');
+                    const data = await response.json();
+                    
+                    if (data.has_key) {
+                        if (data.is_working) {
+                            apiStatus.className = 'badge bg-success';
+                            apiStatus.textContent = 'Connected';
+                        } else {
+                            apiStatus.className = 'badge bg-warning';
+                            apiStatus.textContent = 'Key Set (Not Tested)';
+                        }
+                        currentKey.textContent = data.masked_key || '';
+                    } else {
+                        apiStatus.className = 'badge bg-danger';
+                        apiStatus.textContent = 'Not Configured';
+                        currentKey.textContent = 'No API key set';
+                    }
+                } catch (error) {
+                    apiStatus.className = 'badge bg-secondary';
+                    apiStatus.textContent = 'Error Loading Status';
+                    console.error('Error loading API key status:', error);
+                }
+            }
+
+            async function saveApiKey() {
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    showMessage('Please enter an API key', 'danger');
+                    return;
+                }
+
+                saveKeyBtn.disabled = true;
+                saveKeyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+                try {
+                    const response = await fetch('/api/settings/gemini-key', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ api_key: apiKey })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        showMessage('API key saved successfully! Chat functionality is now enabled.', 'success');
+                        loadApiKeyStatus();
+                        testKeyBtn.disabled = false;
+                    } else {
+                        showMessage(result.error || 'Failed to save API key', 'danger');
+                    }
+                } catch (error) {
+                    showMessage('Network error. Please try again.', 'danger');
+                    console.error('Error saving API key:', error);
+                } finally {
+                    saveKeyBtn.disabled = false;
+                    saveKeyBtn.innerHTML = '<span class="me-2">💾</span>Save API Key';
+                }
+            }
+
+            async function testApiKey() {
+                const apiKey = apiKeyInput.value.trim();
+                if (!apiKey) {
+                    showMessage('Please enter an API key first', 'warning');
+                    return;
+                }
+
+                testKeyBtn.disabled = true;
+                testKeyBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Testing...';
+
+                try {
+                    // Test by saving the key (which tests the connection)
+                    await saveApiKey();
+                } finally {
+                    testKeyBtn.disabled = false;
+                    testKeyBtn.innerHTML = '<span class="me-2">🧪</span>Test Connection';
+                }
+            }
+
+            function showMessage(message, type) {
+                messageContainer.innerHTML = `
+                    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

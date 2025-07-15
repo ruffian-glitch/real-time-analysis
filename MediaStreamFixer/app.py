@@ -32,16 +32,29 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Configure Gemini API
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'default-key')
-if GEMINI_API_KEY and GEMINI_API_KEY != 'default-key':
-    try:
-        client = genai.Client(api_key=GEMINI_API_KEY)
-        logger.info("Gemini API client initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize Gemini API client: {e}")
+client = None
+
+def initialize_gemini_client(api_key=None):
+    """Initialize or reinitialize the Gemini client with the provided API key."""
+    global client
+    key_to_use = api_key or GEMINI_API_KEY
+    
+    if key_to_use and key_to_use != 'default-key':
+        try:
+            client = genai.Client(api_key=key_to_use)
+            logger.info("Gemini API client initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini API client: {e}")
+            client = None
+            return False
+    else:
         client = None
-else:
-    client = None
-    logger.warning("Gemini API key not configured - chat functionality will be disabled")
+        logger.warning("Gemini API key not configured - chat functionality will be disabled")
+        return False
+
+# Initialize on startup
+initialize_gemini_client()
 
 # Allowed video extensions
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp'}
@@ -85,6 +98,52 @@ def index():
 @app.route('/results')
 def results():
     return render_template('results.html')
+
+@app.route('/settings')
+def settings():
+    return render_template('settings.html')
+
+@app.route('/api/settings/gemini-key', methods=['POST'])
+def update_gemini_key():
+    try:
+        data = request.get_json()
+        if not data or 'api_key' not in data:
+            return jsonify({"error": "API key is required"}), 400
+        
+        api_key = data['api_key'].strip()
+        if not api_key:
+            return jsonify({"error": "API key cannot be empty"}), 400
+        
+        # Test the API key by initializing the client
+        if initialize_gemini_client(api_key):
+            # Store in environment for this session
+            os.environ['GEMINI_API_KEY'] = api_key
+            global GEMINI_API_KEY
+            GEMINI_API_KEY = api_key
+            
+            logger.info("Gemini API key updated successfully")
+            return jsonify({"success": True, "message": "API key updated successfully"})
+        else:
+            return jsonify({"error": "Invalid API key or failed to connect to Gemini"}), 400
+            
+    except Exception as e:
+        logger.error(f"Error updating Gemini API key: {str(e)}")
+        return jsonify({"error": f"Failed to update API key: {str(e)}"}), 500
+
+@app.route('/api/settings/gemini-key', methods=['GET'])
+def get_gemini_key_status():
+    try:
+        has_key = GEMINI_API_KEY and GEMINI_API_KEY != 'default-key'
+        is_working = client is not None
+        
+        return jsonify({
+            "has_key": has_key,
+            "is_working": is_working,
+            "masked_key": f"sk-...{GEMINI_API_KEY[-4:]}" if has_key else None
+        })
+    except Exception as e:
+        logger.error(f"Error getting API key status: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/analyze', methods=['POST'])
 def handle_analysis():
@@ -172,7 +231,10 @@ def handle_analysis():
                 result = analysis_result['result']
                 # Add redirect URL to the response
                 result['redirect_url'] = f"/results?data={json.dumps(result)}"
-                return jsonify(result)</old_str>
+                return jsonify(result)
+            else:
+                logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
+                return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500</old_str>
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
                 return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
