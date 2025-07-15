@@ -3,7 +3,7 @@ import json
 import logging
 import time
 import threading
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_file
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from google import genai
@@ -82,6 +82,10 @@ def analyze_video_with_timeout(video_path, drill_type, result_id, timeout_second
 def index():
     return render_template('index.html')
 
+@app.route('/results')
+def results():
+    return render_template('results.html')
+
 @app.route('/api/analyze', methods=['POST'])
 def handle_analysis():
     try:
@@ -154,10 +158,10 @@ def handle_analysis():
             # Run analysis with timeout
             analysis_result = analyze_video_with_timeout(video_path, drill_type, result_id, timeout_seconds=180)
             
-            # Clean up the uploaded file
-            if os.path.exists(video_path):
-                os.remove(video_path)
-                logger.info("Cleaned up video file")
+            # Keep the video file for the results page
+            # Store video path in results for the results page
+            if analysis_result['status'] == 'completed':
+                analysis_result['result']['video_path'] = filename
             
             # Clean up cache
             if result_id in analysis_results_cache:
@@ -165,7 +169,10 @@ def handle_analysis():
             
             if analysis_result['status'] == 'completed':
                 logger.info("Video analysis completed successfully")
-                return jsonify(analysis_result['result'])
+                result = analysis_result['result']
+                # Add redirect URL to the response
+                result['redirect_url'] = f"/results?data={json.dumps(result)}"
+                return jsonify(result)</old_str>
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
                 return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
@@ -242,6 +249,11 @@ def handle_chat():
     except Exception as e:
         logger.error(f"Error in chat handler: {str(e)}", exc_info=True)
         return jsonify({"error": f"Chat error: {str(e)}"}), 500
+
+@app.route('/uploads/<filename>')
+def serve_video(filename):
+    """Serve uploaded video files."""
+    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

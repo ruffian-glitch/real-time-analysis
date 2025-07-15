@@ -228,5 +228,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+    <script>
+                    // Redirect to results page with analysis data
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else {
+                            // Fallback: show results inline
+                            document.getElementById('results').innerHTML = `
+                                <h2>Analysis Complete!</h2>
+                                <pre>${JSON.stringify(data, null, 2)}</pre>
+                            `;
+                            document.getElementById('results').style.display = 'block';
+                        }
+</script>
 </body>
 </html>
