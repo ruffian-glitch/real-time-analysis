@@ -38,7 +38,7 @@ def initialize_gemini_client(api_key=None):
     """Initialize or reinitialize the Gemini client with the provided API key."""
     global client
     key_to_use = api_key or GEMINI_API_KEY
-    
+
     if key_to_use and key_to_use != 'default-key':
         try:
             client = genai.Client(api_key=key_to_use)
@@ -76,19 +76,19 @@ def analyze_video_with_timeout(video_path, drill_type, result_id, timeout_second
         except Exception as e:
             logger.error(f"Analysis failed for {result_id}: {str(e)}")
             analysis_results_cache[result_id] = {'status': 'error', 'error': str(e)}
-    
+
     thread = threading.Thread(target=target)
     thread.daemon = True
     thread.start()
-    
+
     # Wait for completion or timeout
     thread.join(timeout=timeout_seconds)
-    
+
     if thread.is_alive():
         logger.error(f"Analysis timed out for {result_id}")
         analysis_results_cache[result_id] = {'status': 'error', 'error': 'Analysis timed out - video may be too long or complex'}
         return analysis_results_cache[result_id]
-    
+
     return analysis_results_cache.get(result_id, {'status': 'error', 'error': 'Unknown error occurred'})
 
 @app.route('/')
@@ -109,23 +109,23 @@ def update_gemini_key():
         data = request.get_json()
         if not data or 'api_key' not in data:
             return jsonify({"error": "API key is required"}), 400
-        
+
         api_key = data['api_key'].strip()
         if not api_key:
             return jsonify({"error": "API key cannot be empty"}), 400
-        
+
         # Test the API key by initializing the client
         if initialize_gemini_client(api_key):
             # Store in environment for this session
             os.environ['GEMINI_API_KEY'] = api_key
             global GEMINI_API_KEY
             GEMINI_API_KEY = api_key
-            
+
             logger.info("Gemini API key updated successfully")
             return jsonify({"success": True, "message": "API key updated successfully"})
         else:
             return jsonify({"error": "Invalid API key or failed to connect to Gemini"}), 400
-            
+
     except Exception as e:
         logger.error(f"Error updating Gemini API key: {str(e)}")
         return jsonify({"error": f"Failed to update API key: {str(e)}"}), 500
@@ -135,7 +135,7 @@ def get_gemini_key_status():
     try:
         has_key = GEMINI_API_KEY and GEMINI_API_KEY != 'default-key'
         is_working = client is not None
-        
+
         return jsonify({
             "has_key": has_key,
             "is_working": is_working,
@@ -149,7 +149,7 @@ def get_gemini_key_status():
 def handle_analysis():
     try:
         logger.info("Analysis request received")
-        
+
         # Check if video file is present
         if 'video' not in request.files:
             logger.error("No video file provided")
@@ -182,7 +182,7 @@ def handle_analysis():
         name, ext = os.path.splitext(filename)
         filename = f"{name}_{timestamp}{ext}"
         video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        
+
         try:
             logger.info(f"Saving video to: {video_path}")
             video_file.save(video_path)
@@ -199,7 +199,7 @@ def handle_analysis():
         # Check file size
         file_size = os.path.getsize(video_path)
         logger.info(f"Video file size: {file_size} bytes ({file_size / (1024*1024):.2f} MB)")
-        
+
         if file_size == 0:
             logger.error("Video file is empty")
             if os.path.exists(video_path):
@@ -210,22 +210,22 @@ def handle_analysis():
         try:
             logger.info("Starting video analysis with timeout...")
             result_id = f"analysis_{timestamp}"
-            
+
             # Initialize result in cache
             analysis_results_cache[result_id] = {'status': 'processing'}
-            
+
             # Run analysis with timeout
             analysis_result = analyze_video_with_timeout(video_path, drill_type, result_id, timeout_seconds=180)
-            
+
             # Keep the video file for the results page
             # Store video path in results for the results page
             if analysis_result['status'] == 'completed':
                 analysis_result['result']['video_path'] = filename
-            
+
             # Clean up cache
             if result_id in analysis_results_cache:
                 del analysis_results_cache[result_id]
-            
+
             if analysis_result['status'] == 'completed':
                 logger.info("Video analysis completed successfully")
                 result = analysis_result['result']
@@ -234,11 +234,11 @@ def handle_analysis():
                 return jsonify(result)
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
-                return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500</old_str>
+                return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
                 return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
-            
+
         except Exception as e:
             logger.error(f"Error during video analysis: {str(e)}", exc_info=True)
             # Clean up the uploaded file in case of error
@@ -254,7 +254,7 @@ def handle_analysis():
 def handle_chat():
     try:
         logger.info("Chat request received")
-        
+
         if not client:
             logger.error("Gemini API client not configured")
             return jsonify({"error": "Gemini API key is not configured on the server."}), 500
@@ -263,7 +263,7 @@ def handle_chat():
         if not data:
             logger.error("No JSON data provided")
             return jsonify({"error": "No JSON data provided"}), 400
-            
+
         user_question = data.get('question')
         analysis_json = data.get('analysis_data')
 
@@ -294,20 +294,20 @@ def handle_chat():
 **Answer:**"""
 
         logger.info(f"Sending prompt to Gemini API")
-        
+
         # Send request to Gemini API
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
-        
+
         if response.text:
             logger.info("Received response from Gemini API")
             return jsonify({"response": response.text})
         else:
             logger.error("Empty response from Gemini API")
             return jsonify({"error": "No response from AI service"}), 500
-            
+
     except Exception as e:
         logger.error(f"Error in chat handler: {str(e)}", exc_info=True)
         return jsonify({"error": f"Chat error: {str(e)}"}), 500
