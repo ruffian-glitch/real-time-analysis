@@ -329,3 +329,138 @@
 2025-07-15 03:20:33,454 - google_genai.models - INFO - AFC remote call 1 is done.
 2025-07-15 03:20:33,455 - __main__ - INFO - Received response from Gemini API
 2025-07-15 03:20:33,455 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:20:33] "POST /api/chat HTTP/1.1" 200 -
+2025-07-15 03:24:46,234 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 03:24:46,293 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.193:5000
+2025-07-15 03:24:46,293 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-07-15 03:24:46,296 - werkzeug - INFO -  * Restarting with stat
+2025-07-15 03:24:48,946 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 03:24:48,991 - werkzeug - WARNING -  * Debugger is active!
+2025-07-15 03:24:48,993 - werkzeug - INFO -  * Debugger PIN: 610-789-166
+2025-07-15 03:24:49,120 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:24:49] "GET / HTTP/1.1" 200 -
+2025-07-15 03:24:49,197 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:24:49] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:24:49,282 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:24:49] "GET /static/app.js HTTP/1.1" 200 -
+2025-07-15 03:24:49,709 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:24:49] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:24:59,858 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:24:59] "GET /settings HTTP/1.1" 200 -
+2025-07-15 03:24:59,937 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:24:59] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:25:00,884 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:00] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:25:17,219 - __main__ - INFO - Gemini API client initialized successfully
+2025-07-15 03:25:17,220 - __main__ - INFO - Gemini API key updated successfully
+2025-07-15 03:25:17,220 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:17] "POST /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:25:17,306 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:17] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:25:29,889 - __main__ - INFO - Gemini API client initialized successfully
+2025-07-15 03:25:29,892 - __main__ - INFO - Gemini API key updated successfully
+2025-07-15 03:25:29,893 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:29] "POST /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:25:29,930 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:29] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:25:31,607 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:31] "GET / HTTP/1.1" 200 -
+2025-07-15 03:25:31,748 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:25:31] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:25:31,751 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:25:31] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:25:32,339 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:25:32] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:25:43,551 - __main__ - INFO - Analysis request received
+2025-07-15 03:25:45,639 - __main__ - INFO - Received drill_type: pushups
+2025-07-15 03:25:45,639 - __main__ - INFO - Received video file: krishnapan hazarika.mp4
+2025-07-15 03:25:45,639 - __main__ - INFO - Video file size: 0
+2025-07-15 03:25:45,639 - __main__ - INFO - Saving video to: uploads/krishnapan_hazarika_1752549945.mp4
+2025-07-15 03:25:45,763 - __main__ - INFO - Video saved successfully
+2025-07-15 03:25:45,763 - __main__ - INFO - Video file size: 46603522 bytes (44.44 MB)
+2025-07-15 03:25:45,764 - __main__ - INFO - Starting video analysis with timeout...
+2025-07-15 03:25:45,770 - __main__ - INFO - Starting analysis for pushups on uploads/krishnapan_hazarika_1752549945.mp4
+2025-07-15 03:25:45,771 - analysis_module - INFO - Analyzing video: uploads/krishnapan_hazarika_1752549945.mp4 for drill type: pushups
+2025-07-15 03:25:45,771 - analysis_module - INFO - Video file size: 46603522 bytes
+2025-07-15 03:25:45,788 - analysis_module - INFO - Video properties: 720x1280, 29.818391641497243 FPS, 921 frames
+2025-07-15 03:25:45,801 - analysis_module - INFO - Starting pushup analysis for: uploads/krishnapan_hazarika_1752549945.mp4
+2025-07-15 03:25:45,801 - analysis_module - INFO - Video file size: 46603522 bytes
+2025-07-15 03:25:45,812 - analysis_module - INFO - Video properties: 720x1280, 29.818391641497243 FPS, 921 frames
+2025-07-15 03:25:45,851 - analysis_module - INFO - Processing 921 frames with skip=1
+2025-07-15 03:25:46,217 - analysis_module - DEBUG - Pushup started at frame 2
+2025-07-15 03:25:46,916 - analysis_module - DEBUG - Pushup completed: rep 1
+2025-07-15 03:25:47,273 - analysis_module - DEBUG - Pushup started at frame 32
+2025-07-15 03:25:47,915 - analysis_module - DEBUG - Pushup completed: rep 2
+2025-07-15 03:25:48,292 - analysis_module - DEBUG - Pushup started at frame 62
+2025-07-15 03:25:48,914 - analysis_module - DEBUG - Pushup completed: rep 3
+2025-07-15 03:25:49,318 - analysis_module - DEBUG - Pushup started at frame 93
+2025-07-15 03:25:49,502 - analysis_module - DEBUG - Processed 100 frames
+2025-07-15 03:25:49,828 - analysis_module - DEBUG - Pushup completed: rep 4
+2025-07-15 03:25:50,329 - analysis_module - DEBUG - Pushup started at frame 123
+2025-07-15 03:25:50,925 - analysis_module - DEBUG - Pushup completed: rep 5
+2025-07-15 03:25:51,433 - analysis_module - DEBUG - Pushup started at frame 154
+2025-07-15 03:25:52,006 - analysis_module - DEBUG - Pushup completed: rep 6
+2025-07-15 03:25:52,558 - analysis_module - DEBUG - Pushup started at frame 186
+2025-07-15 03:25:53,033 - analysis_module - DEBUG - Processed 200 frames
+2025-07-15 03:25:53,171 - analysis_module - DEBUG - Pushup completed: rep 7
+2025-07-15 03:25:53,706 - analysis_module - DEBUG - Pushup started at frame 217
+2025-07-15 03:25:54,354 - analysis_module - DEBUG - Pushup completed: rep 8
+2025-07-15 03:25:55,016 - analysis_module - DEBUG - Pushup started at frame 249
+2025-07-15 03:25:55,730 - analysis_module - DEBUG - Pushup completed: rep 9
+2025-07-15 03:25:56,354 - analysis_module - DEBUG - Pushup started at frame 280
+2025-07-15 03:25:57,133 - analysis_module - DEBUG - Pushup completed: rep 10
+2025-07-15 03:25:57,211 - analysis_module - DEBUG - Processed 300 frames
+2025-07-15 03:25:57,678 - analysis_module - DEBUG - Pushup started at frame 313
+2025-07-15 03:25:58,414 - analysis_module - DEBUG - Pushup completed: rep 11
+2025-07-15 03:25:59,097 - analysis_module - DEBUG - Pushup started at frame 347
+2025-07-15 03:25:59,809 - analysis_module - DEBUG - Pushup completed: rep 12
+2025-07-15 03:26:01,130 - analysis_module - DEBUG - Pushup started at frame 380
+2025-07-15 03:26:02,648 - analysis_module - DEBUG - Pushup completed: rep 13
+2025-07-15 03:26:02,964 - analysis_module - DEBUG - Processed 400 frames
+2025-07-15 03:26:03,648 - analysis_module - DEBUG - Pushup started at frame 412
+2025-07-15 03:26:04,423 - analysis_module - DEBUG - Pushup completed: rep 14
+2025-07-15 03:26:05,084 - analysis_module - DEBUG - Pushup started at frame 445
+2025-07-15 03:26:06,000 - analysis_module - DEBUG - Pushup completed: rep 15
+2025-07-15 03:26:06,763 - analysis_module - DEBUG - Pushup started at frame 478
+2025-07-15 03:26:07,486 - analysis_module - DEBUG - Pushup completed: rep 16
+2025-07-15 03:26:07,658 - analysis_module - DEBUG - Processed 500 frames
+2025-07-15 03:26:08,248 - analysis_module - DEBUG - Pushup started at frame 512
+2025-07-15 03:26:08,942 - analysis_module - DEBUG - Pushup completed: rep 17
+2025-07-15 03:26:09,730 - analysis_module - DEBUG - Pushup started at frame 546
+2025-07-15 03:26:10,390 - analysis_module - DEBUG - Pushup completed: rep 18
+2025-07-15 03:26:11,004 - analysis_module - DEBUG - Pushup started at frame 579
+2025-07-15 03:26:11,699 - analysis_module - DEBUG - Pushup completed: rep 19
+2025-07-15 03:26:12,057 - analysis_module - DEBUG - Processed 600 frames
+2025-07-15 03:26:12,821 - analysis_module - DEBUG - Pushup started at frame 613
+2025-07-15 03:26:13,628 - analysis_module - DEBUG - Pushup completed: rep 20
+2025-07-15 03:26:14,482 - analysis_module - DEBUG - Pushup started at frame 647
+2025-07-15 03:26:15,301 - analysis_module - DEBUG - Pushup completed: rep 21
+2025-07-15 03:26:16,153 - analysis_module - DEBUG - Pushup started at frame 685
+2025-07-15 03:26:16,777 - analysis_module - DEBUG - Processed 700 frames
+2025-07-15 03:26:16,816 - analysis_module - DEBUG - Pushup completed: rep 22
+2025-07-15 03:26:17,613 - analysis_module - DEBUG - Pushup started at frame 721
+2025-07-15 03:26:18,338 - analysis_module - DEBUG - Pushup completed: rep 23
+2025-07-15 03:26:19,458 - analysis_module - DEBUG - Pushup started at frame 763
+2025-07-15 03:26:20,026 - analysis_module - DEBUG - Pushup completed: rep 24
+2025-07-15 03:26:20,751 - analysis_module - DEBUG - Pushup started at frame 795
+2025-07-15 03:26:20,945 - analysis_module - DEBUG - Processed 800 frames
+2025-07-15 03:26:21,336 - analysis_module - DEBUG - Pushup completed: rep 25
+2025-07-15 03:26:23,078 - analysis_module - DEBUG - Pushup started at frame 844
+2025-07-15 03:26:24,036 - analysis_module - DEBUG - Pushup completed: rep 26
+2025-07-15 03:26:25,462 - analysis_module - DEBUG - Pushup started at frame 883
+2025-07-15 03:26:26,336 - analysis_module - DEBUG - Processed 900 frames
+2025-07-15 03:26:26,454 - analysis_module - DEBUG - Pushup completed: rep 27
+2025-07-15 03:26:27,189 - analysis_module - INFO - Pushup analysis complete. Found 27 reps
+2025-07-15 03:26:27,189 - analysis_module - INFO - Analysis completed in 41.39 seconds
+2025-07-15 03:26:27,189 - __main__ - INFO - Analysis completed for analysis_1752549945
+2025-07-15 03:26:27,190 - __main__ - INFO - Video analysis completed successfully
+2025-07-15 03:26:27,196 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:26:27] "POST /api/analyze HTTP/1.1" 200 -
+2025-07-15 03:27:17,343 - __main__ - INFO - Chat request received
+2025-07-15 03:27:17,344 - __main__ - INFO - Processing chat question: how was my form
+2025-07-15 03:27:17,344 - __main__ - INFO - Sending prompt to Gemini API
+2025-07-15 03:27:17,345 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-07-15 03:27:17,346 - httpcore.connection - DEBUG - connect_tcp.started host='generativelanguage.googleapis.com' port=443 local_address=None timeout=None socket_options=None
+2025-07-15 03:27:17,358 - httpcore.connection - DEBUG - connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fb4b1afb770>
+2025-07-15 03:27:17,358 - httpcore.connection - DEBUG - start_tls.started ssl_context=<ssl.SSLContext object at 0x7fb4b09087d0> server_hostname='generativelanguage.googleapis.com' timeout=None
+2025-07-15 03:27:17,365 - httpcore.connection - DEBUG - start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7fb4b1c6d940>
+2025-07-15 03:27:17,366 - httpcore.http11 - DEBUG - send_request_headers.started request=<Request [b'POST']>
+2025-07-15 03:27:17,367 - httpcore.http11 - DEBUG - send_request_headers.complete
+2025-07-15 03:27:17,367 - httpcore.http11 - DEBUG - send_request_body.started request=<Request [b'POST']>
+2025-07-15 03:27:17,368 - httpcore.http11 - DEBUG - send_request_body.complete
+2025-07-15 03:27:17,369 - httpcore.http11 - DEBUG - receive_response_headers.started request=<Request [b'POST']>
+2025-07-15 03:27:30,751 - httpcore.http11 - DEBUG - receive_response_headers.complete return_value=(b'HTTP/1.1', 200, b'OK', [(b'Content-Type', b'application/json; charset=UTF-8'), (b'Vary', b'Origin'), (b'Vary', b'X-Origin'), (b'Vary', b'Referer'), (b'Content-Encoding', b'gzip'), (b'Date', b'Tue, 15 Jul 2025 03:27:30 GMT'), (b'Server', b'scaffolding on HTTPServer2'), (b'X-XSS-Protection', b'0'), (b'X-Frame-Options', b'SAMEORIGIN'), (b'X-Content-Type-Options', b'nosniff'), (b'Server-Timing', b'gfet4t7; dur=13381'), (b'Transfer-Encoding', b'chunked')])
+2025-07-15 03:27:30,753 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2025-07-15 03:27:30,754 - httpcore.http11 - DEBUG - receive_response_body.started request=<Request [b'POST']>
+2025-07-15 03:27:30,754 - httpcore.http11 - DEBUG - receive_response_body.complete
+2025-07-15 03:27:30,755 - httpcore.http11 - DEBUG - response_closed.started
+2025-07-15 03:27:30,755 - httpcore.http11 - DEBUG - response_closed.complete
+2025-07-15 03:27:30,756 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-07-15 03:27:30,758 - __main__ - INFO - Received response from Gemini API
+2025-07-15 03:27:30,759 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:27:30] "POST /api/chat HTTP/1.1" 200 -
