@@ -1,0 +1,265 @@
+Persona: You are an expert Python backend developer specializing in Flask, computer vision with MediaPipe, and API development. Your task is to integrate real video analysis capabilities into an existing Flask application that currently serves mock data to a React frontend.
+
+Core Request:
+I have a web application with a React frontend and a Flask backend running on Replit. Currently, the backend provides only mock analysis data. Your task is to implement the real video analysis logic using the provided Python scripts. You will refactor these scripts to use MediaPipe Pose for all pose estimation tasks, create a unified analysis module, and expose it through a new Flask API endpoint. The final output must be a structured JSON object containing detailed metrics for each exercise, which will be used by the frontend and an AI chat agent.
+
+Project Context & File Structure:
+app.py: The main Flask application file. It currently has placeholder routes.
+
+analysis_scripts/: A directory containing the Python scripts for each drill (squats.py, situps.py, etc.). You will use the logic within these as a reference.
+
+uploads/: A directory where uploaded videos will be temporarily stored for processing.
+
+High-Level Task Breakdown:
+Create a Central Analysis Module: Create a new file named analysis_module.py. This module will contain all the video processing logic.
+
+Refactor Individual Drill Functions: Inside analysis_module.py, create a dedicated function for each fitness drill. You will adapt the provided Python code for each drill, ensuring you replace any YOLO-based detection with MediaPipe Pose and that each function returns the required JSON structure.
+
+Implement Main Analysis Router: Create a primary function analyze_video(video_path, drill_type) in analysis_module.py that calls the appropriate drill-specific function based on the drill_type parameter.
+
+Update Flask API: Modify app.py to add a new endpoint, /api/analyze, that accepts a video file and a drill type, calls the analyze_video function, and returns the resulting JSON.
+
+Detailed Implementation Steps:
+1. analysis_module.py - The Core Logic
+Create this new file. It should start with necessary imports:
+
+import cv2
+import mediapipe as mp
+import numpy as np
+import json
+import os
+
+# Initialize MediaPipe Pose
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+Now, add the following functions to it:
+
+A. Push-ups Analysis (analyze_pushups)
+
+Instruction: Create a function analyze_pushups(video_path). Use the logic from the user-provided scripts as a reference for angle calculation and rep counting, but implement it using MediaPipe.
+
+Metrics to Generate:
+
+Count total repetitions.
+
+For each rep, identify the start_frame and end_frame.
+
+For each rep, calculate the maximum and minimum elbow angle.
+
+For each rep, calculate the body angle (shoulder-hip-ankle) to check for straightness.
+
+JSON Output Structure:
+
+{
+  "drill_type": "pushups",
+  "overall_metrics": {
+    "total_reps": 12,
+    "avg_form_score": 85
+  },
+  "reps_data": [
+    {
+      "rep_number": 1,
+      "start_frame": 50,
+      "end_frame": 110,
+      "max_elbow_angle": 165,
+      "min_elbow_angle": 85,
+      "body_angle_at_bottom": 175
+    }
+  ]
+}
+
+B. Squats Analysis (analyze_squats)
+
+Instruction: Create analyze_squats(video_path). Adapt the logic from the attached squats.py.
+
+Metrics to Generate:
+
+Count total repetitions.
+
+For each rep, identify start_frame and end_frame.
+
+For each rep, calculate the minimum knee angle (to measure depth).
+
+For each rep, calculate the torso angle relative to the vertical at the bottom of the squat.
+
+JSON Output Structure:
+
+{
+  "drill_type": "squats",
+  "overall_metrics": { "total_reps": 15, "avg_depth_score": 92 },
+  "reps_data": [
+    {
+      "rep_number": 1,
+      "start_frame": 30,
+      "end_frame": 95,
+      "min_knee_angle": 88,
+      "torso_angle_at_bottom": 75
+    }
+  ]
+}
+
+C. Sit-ups Analysis (analyze_situps)
+
+Instruction: Create analyze_situps(video_path). Adapt the logic from the attached situps.py.
+
+Metrics to Generate:
+
+Count total repetitions.
+
+For each rep, identify start_frame and end_frame.
+
+For each rep, calculate the hip angle at the top and bottom.
+
+JSON Output Structure:
+
+{
+  "drill_type": "situps",
+  "overall_metrics": { "total_reps": 20 },
+  "reps_data": [
+    {
+      "rep_number": 1,
+      "start_frame": 40,
+      "end_frame": 120,
+      "hip_angle_top": 55,
+      "hip_angle_bottom": 115
+    }
+  ]
+}
+
+D. Chair Hold / Wall Sit Analysis (analyze_chair_hold)
+
+Instruction: Create analyze_chair_hold(video_path). Adapt the logic from chairhold.py.
+
+Metrics to Generate:
+
+Total time spent in the correct hold position.
+
+For every second of the hold, record the knee angle and hip angle.
+
+JSON Output Structure:
+
+{
+  "drill_type": "chair_hold",
+  "overall_metrics": { "total_hold_time": 45 },
+  "time_series_data": [
+    { "timestamp": 1, "knee_angle": 92, "hip_angle": 95 },
+    { "timestamp": 2, "knee_angle": 91, "hip_angle": 94 }
+  ]
+}
+
+E. Elbow Plank Analysis (analyze_elbow_plank)
+
+Instruction: Create analyze_elbow_plank(video_path). Adapt the logic from elbow_plank.py.
+
+Metrics to Generate:
+
+Total time spent in the correct plank position.
+
+For every second of the hold, record the body angle (shoulder-hip-ankle).
+
+JSON Output Structure:
+
+{
+  "drill_type": "elbow_plank",
+  "overall_metrics": { "total_hold_time": 60 },
+  "time_series_data": [
+    { "timestamp": 1, "body_angle": 178 },
+    { "timestamp": 2, "body_angle": 177 }
+  ]
+}
+
+F. Single Leg Balance Analysis (analyze_single_leg_balance)
+
+Instruction: Create analyze_single_leg_balance(video_path, leg_side). Adapt the logic from right_leg_balance.py. It must work for both "left" and "right" leg_side. The provided code is for the right leg; create the logic for the left leg by making the necessary modifications.
+
+Metrics to Generate:
+
+Total time spent in the correct balance position.
+
+Count the number of "fouls" (when the lifted foot touches the ground).
+
+For each foul, record the timestamp and frame_number.
+
+JSON Output Structure:
+
+{
+  "drill_type": "single_leg_balance",
+  "leg_side": "right",
+  "overall_metrics": { "total_balance_time": 55, "total_fouls": 3 },
+  "foul_data": [
+    { "foul_number": 1, "timestamp": 15, "frame_number": 450 },
+    { "foul_number": 2, "timestamp": 32, "frame_number": 960 }
+  ]
+}
+
+G. Main Router Function
+
+Instruction: Create the main analyze_video function.
+
+def analyze_video(video_path, drill_type):
+    if drill_type == 'pushups':
+        return analyze_pushups(video_path)
+    elif drill_type == 'squats':
+        return analyze_squats(video_path)
+    # ... add all other drill types here ...
+    elif drill_type == 'single_leg_balance_right':
+        return analyze_single_leg_balance(video_path, 'right')
+    elif drill_type == 'single_leg_balance_left':
+        return analyze_single_leg_balance(video_path, 'left')
+    else:
+        return {"error": "Invalid drill type specified"}
+
+2. app.py - The Flask API
+Modify your app.py to include the new endpoint.
+
+from flask import Flask, request, jsonify
+from werkzeug.utils import secure_filename
+import os
+from analysis_module import analyze_video # Import your new module
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+@app.route('/api/analyze', methods=['POST'])
+def handle_analysis():
+    if 'video' not in request.files:
+        return jsonify({"error": "No video file provided"}), 400
+    
+    video_file = request.files['video']
+    drill_type = request.form.get('drill_type')
+
+    if not drill_type:
+        return jsonify({"error": "No drill type specified"}), 400
+
+    if video_file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    if video_file:
+        filename = secure_filename(video_file.filename)
+        video_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        video_file.save(video_path)
+
+        # Call the analysis function
+        analysis_results = analyze_video(video_path, drill_type)
+
+        # Clean up the uploaded file
+        os.remove(video_path)
+
+        return jsonify(analysis_results)
+
+    return jsonify({"error": "An unknown error occurred"}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=81)
+
+Final Deliverables:
+The complete, final code for analysis_module.py.
+
+The complete, final code for the modified app.py.
+
+Ensure all code is clean, well-commented, and directly usable in a Replit environment.
+
+User-Provided Code for Reference:
+You will now paste the content of chairhold.py, squats.py, situps.py, elbow_plank.py, and right_leg_balance.py here when you give this prompt to the Replit AI.

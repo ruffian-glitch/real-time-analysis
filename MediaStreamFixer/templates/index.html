@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coach</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body style="background-color: #f8f9fa;">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-bottom sticky-top">
+        <div class="container-fluid px-4">
+            <div class="d-flex justify-content-between align-items-center py-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        <i class="fas fa-dumbbell text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="h5 fw-bold text-dark mb-0">AI Fitness Coach</h1>
+                        <p class="text-muted mb-0 small">Analyze Your Performance</p>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-ghost me-3" style="border: none; background: transparent;">
+                        <i class="fas fa-bell text-muted"></i>
+                    </button>
+                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-muted"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container-fluid px-4 py-4">
+        <div id="upload-section">
+            <div class="bg-white rounded-4 shadow-sm p-5 mb-4">
+                <div class="text-center mb-5">
+                    <h2 class="h2 fw-bold text-dark mb-3">Upload Your Fitness Video</h2>
+                    <p class="h6 text-muted">Select your drill type and upload a video to get instant AI-powered analysis</p>
+                </div>
+
+                <form id="upload-form" enctype="multipart/form-data">
+                    <!-- Drill Selection -->
+                    <div class="mb-5">
+                        <label class="h6 fw-semibold text-dark mb-3 d-block">Select Drill Type</label>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="pushups">
+                                    <i class="fas fa-arrow-down text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Push-ups</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="squats">
+                                    <i class="fas fa-arrow-up text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Squats</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="situps">
+                                    <i class="fas fa-arrow-up text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Sit-ups</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="chair_hold">
+                                    <i class="fas fa-clock text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Chair Hold</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="elbow_plank">
+                                    <i class="fas fa-minus text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Elbow Plank</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="drill-option" data-drill="single_leg_balance_left">
+                                    <i class="fas fa-balance-scale text-muted mb-2"></i>
+                                    <div class="fw-medium text-dark">Single Leg Balance</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Video Upload -->
+                    <div class="mb-5">
+                        <label class="h6 fw-semibold text-dark mb-3 d-block">Upload Video</label>
+                        <div class="upload-area border-2 border-dashed border-secondary rounded-4 p-5 text-center">
+                            <div id="upload-placeholder">
+                                <i class="fas fa-cloud-upload-alt text-muted mb-3" style="font-size: 4rem;"></i>
+                                <p class="h6 text-muted mb-2">Drag and drop your video file here</p>
+                                <p class="text-muted small mb-3">or click to browse files</p>
+                                <input type="file" class="d-none" id="video-file" name="video" accept="video/*" required>
+                                <button type="button" class="btn btn-primary px-4 py-2" onclick="document.getElementById('video-file').click()">
+                                    Choose File
+                                </button>
+                            </div>
+                            <div id="file-selected" class="d-none">
+                                <div class="text-success mb-3" style="font-size: 4rem;">📹</div>
+                                <p class="h6 text-dark mb-1" id="file-name"></p>
+                                <p class="text-muted small" id="file-size"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg px-5 py-3 rounded-4 fw-semibold" disabled id="analyze-btn">
+                            <span class="me-2">🧠</span>
+                            Analyze Video
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="processing-section" class="d-none">
+            <div class="bg-white rounded-4 shadow-sm p-5 text-center">
+                <div class="mb-4">
+                    <div class="spinner-border text-primary" style="width: 6rem; height: 6rem;" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                </div>
+                <h3 class="h3 fw-bold text-dark mb-3">Analyzing Your Performance</h3>
+                <p class="h6 text-muted mb-4">Our AI is processing your video and analyzing your form...</p>
+                <div class="progress mb-3" style="height: 12px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%" id="progress-bar"></div>
+                </div>
+                <p class="text-muted small mb-3" id="processing-status">Initializing analysis...</p>
+            </div>
+        </div>
+
+        <div id="error-section" class="d-none">
+            <div class="bg-white rounded-4 shadow-sm p-5">
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Error</h6>
+                    <p id="error-message"></p>
+                    <div id="error-details" class="mt-2 d-none">
+                        <small class="text-muted">
+                            <strong>Common solutions:</strong>
+                            <ul class="mb-0">
+                                <li>Ensure video file is not corrupted</li>
+                                <li>Try a different video format (MP4 recommended)</li>
+                                <li>Check that video shows clear body movements</li>
+                                <li>Reduce video file size if over 100MB</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-secondary" onclick="resetForm()">
+                        <i class="fas fa-redo me-2"></i>
+                        Try Again
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="showErrorDetails()">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Show Details
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="results-section" class="d-none">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="bg-white rounded-4 shadow-sm">
+                        <div class="p-4 border-bottom">
+                            <h6 class="fw-semibold text-dark mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Analysis Results
+                            </h6>
+                        </div>
+                        <div class="p-4">
+                            <div id="analysis-summary"></div>
+                            <div id="detailed-results" class="mt-3"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-white rounded-4 shadow-sm">
+                        <div class="p-4 border-bottom">
+                            <h6 class="fw-semibold text-dark mb-0">
+                                <i class="fas fa-comments me-2"></i>
+                                AI Coach Chat
+                            </h6>
+                        </div>
+                        <div class="p-4">
+                            <div id="chat-messages" class="chat-messages mb-3" style="height: 300px; overflow-y: auto;"></div>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="chat-input" placeholder="Ask about your performance..." disabled>
+                                <button class="btn btn-outline-primary" id="send-chat" disabled>
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Try asking: "How was my form?", "Show me my best rep", "What can I improve?"
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Chat Button -->
+    <button id="chat-button" class="btn btn-primary position-fixed d-none" style="bottom: 2rem; right: 2rem; width: 4rem; height: 4rem; border-radius: 50%;">
+        <i class="fas fa-comments"></i>
+    </button>
+
+    <footer class="mt-5 py-3 bg-white border-top">
+        <div class="container">
+            <div class="text-center">
+                <small class="text-muted">
+                    <i class="fas fa-robot me-1"></i>
+                    Powered by MediaPipe & Gemini AI
+                </small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
