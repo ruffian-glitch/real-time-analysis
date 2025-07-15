@@ -100,3 +100,97 @@
 2025-07-15 02:47:08,623 - __main__ - INFO - Cleaned up video file
 2025-07-15 02:47:08,623 - __main__ - INFO - Video analysis completed successfully
 2025-07-15 02:47:08,629 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:47:08] "POST /api/analyze HTTP/1.1" 200 -
+2025-07-15 03:04:52,158 - werkzeug - INFO - 10.84.1.66 - - [15/Jul/2025 03:04:52] "GET / HTTP/1.1" 200 -
+2025-07-15 03:04:52,317 - werkzeug - INFO - 10.84.1.66 - - [15/Jul/2025 03:04:52] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:04:52,405 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:04:52] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:04:53,167 - werkzeug - INFO - 10.84.1.66 - - [15/Jul/2025 03:04:53] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:05:19,202 - __main__ - INFO - Analysis request received
+2025-07-15 03:05:23,949 - __main__ - INFO - Received drill_type: pushups
+2025-07-15 03:05:23,949 - __main__ - INFO - Received video file: krishnapan hazarika.mp4
+2025-07-15 03:05:23,949 - __main__ - INFO - Video file size: 0
+2025-07-15 03:05:23,950 - __main__ - INFO - Saving video to: uploads/krishnapan_hazarika_1752548723.mp4
+2025-07-15 03:05:24,067 - __main__ - INFO - Video saved successfully
+2025-07-15 03:05:24,068 - __main__ - INFO - Video file size: 46603522 bytes (44.44 MB)
+2025-07-15 03:05:24,068 - __main__ - INFO - Starting video analysis with timeout...
+2025-07-15 03:05:24,069 - __main__ - INFO - Starting analysis for pushups on uploads/krishnapan_hazarika_1752548723.mp4
+2025-07-15 03:05:24,070 - analysis_module - INFO - Analyzing video: uploads/krishnapan_hazarika_1752548723.mp4 for drill type: pushups
+2025-07-15 03:05:24,070 - analysis_module - INFO - Video file size: 46603522 bytes
+2025-07-15 03:05:24,082 - analysis_module - INFO - Video properties: 720x1280, 29.818391641497243 FPS, 921 frames
+2025-07-15 03:05:24,093 - analysis_module - INFO - Starting pushup analysis for: uploads/krishnapan_hazarika_1752548723.mp4
+2025-07-15 03:05:24,093 - analysis_module - INFO - Video file size: 46603522 bytes
+2025-07-15 03:05:24,107 - analysis_module - INFO - Video properties: 720x1280, 29.818391641497243 FPS, 921 frames
+2025-07-15 03:05:24,151 - analysis_module - INFO - Processing 921 frames with skip=1
+2025-07-15 03:05:24,635 - analysis_module - DEBUG - Pushup started at frame 9
+2025-07-15 03:05:25,167 - analysis_module - DEBUG - Pushup completed: rep 1
+2025-07-15 03:05:25,544 - analysis_module - DEBUG - Pushup started at frame 32
+2025-07-15 03:05:26,224 - analysis_module - DEBUG - Pushup completed: rep 2
+2025-07-15 03:05:26,649 - analysis_module - DEBUG - Pushup started at frame 62
+2025-07-15 03:05:27,402 - analysis_module - DEBUG - Pushup completed: rep 3
+2025-07-15 03:05:27,952 - analysis_module - DEBUG - Pushup started at frame 93
+2025-07-15 03:05:28,208 - analysis_module - DEBUG - Processed 100 frames
+2025-07-15 03:05:28,605 - analysis_module - DEBUG - Pushup completed: rep 4
+2025-07-15 03:05:29,046 - analysis_module - DEBUG - Pushup started at frame 123
+2025-07-15 03:05:29,691 - analysis_module - DEBUG - Pushup completed: rep 5
+2025-07-15 03:05:30,298 - analysis_module - DEBUG - Pushup started at frame 154
+2025-07-15 03:05:31,134 - analysis_module - DEBUG - Pushup completed: rep 6
+2025-07-15 03:05:31,717 - analysis_module - DEBUG - Pushup started at frame 186
+2025-07-15 03:05:32,297 - analysis_module - DEBUG - Processed 200 frames
+2025-07-15 03:05:32,435 - analysis_module - DEBUG - Pushup completed: rep 7
+2025-07-15 03:05:32,973 - analysis_module - DEBUG - Pushup started at frame 217
+2025-07-15 03:05:33,523 - analysis_module - DEBUG - Pushup completed: rep 8
+2025-07-15 03:05:34,128 - analysis_module - DEBUG - Pushup started at frame 249
+2025-07-15 03:05:34,736 - analysis_module - DEBUG - Pushup completed: rep 9
+2025-07-15 03:05:35,307 - analysis_module - DEBUG - Pushup started at frame 280
+2025-07-15 03:05:35,954 - analysis_module - DEBUG - Pushup completed: rep 10
+2025-07-15 03:05:36,028 - analysis_module - DEBUG - Processed 300 frames
+2025-07-15 03:05:36,549 - analysis_module - DEBUG - Pushup started at frame 313
+2025-07-15 03:05:37,160 - analysis_module - DEBUG - Pushup completed: rep 11
+2025-07-15 03:05:37,799 - analysis_module - DEBUG - Pushup started at frame 347
+2025-07-15 03:05:38,347 - analysis_module - DEBUG - Pushup completed: rep 12
+2025-07-15 03:05:38,988 - analysis_module - DEBUG - Pushup started at frame 380
+2025-07-15 03:05:39,598 - analysis_module - DEBUG - Pushup completed: rep 13
+2025-07-15 03:05:39,732 - analysis_module - DEBUG - Processed 400 frames
+2025-07-15 03:05:40,239 - analysis_module - DEBUG - Pushup started at frame 412
+2025-07-15 03:05:40,808 - analysis_module - DEBUG - Pushup completed: rep 14
+2025-07-15 03:05:41,449 - analysis_module - DEBUG - Pushup started at frame 445
+2025-07-15 03:05:42,150 - analysis_module - DEBUG - Pushup completed: rep 15
+2025-07-15 03:05:42,803 - analysis_module - DEBUG - Pushup started at frame 478
+2025-07-15 03:05:43,692 - analysis_module - DEBUG - Pushup completed: rep 16
+2025-07-15 03:05:43,865 - analysis_module - DEBUG - Processed 500 frames
+2025-07-15 03:05:44,759 - analysis_module - DEBUG - Pushup started at frame 512
+2025-07-15 03:05:45,863 - analysis_module - DEBUG - Pushup completed: rep 17
+2025-07-15 03:05:47,230 - analysis_module - DEBUG - Pushup started at frame 546
+2025-07-15 03:05:48,065 - analysis_module - DEBUG - Pushup completed: rep 18
+2025-07-15 03:05:48,835 - analysis_module - DEBUG - Pushup started at frame 579
+2025-07-15 03:05:49,586 - analysis_module - DEBUG - Pushup completed: rep 19
+2025-07-15 03:05:49,739 - analysis_module - DEBUG - Processed 600 frames
+2025-07-15 03:05:50,350 - analysis_module - DEBUG - Pushup started at frame 613
+2025-07-15 03:05:51,022 - analysis_module - DEBUG - Pushup completed: rep 20
+2025-07-15 03:05:51,823 - analysis_module - DEBUG - Pushup started at frame 647
+2025-07-15 03:05:52,670 - analysis_module - DEBUG - Pushup completed: rep 21
+2025-07-15 03:05:53,696 - analysis_module - DEBUG - Pushup started at frame 685
+2025-07-15 03:05:54,339 - analysis_module - DEBUG - Processed 700 frames
+2025-07-15 03:05:54,403 - analysis_module - DEBUG - Pushup completed: rep 22
+2025-07-15 03:05:55,484 - analysis_module - DEBUG - Pushup started at frame 721
+2025-07-15 03:05:56,108 - analysis_module - DEBUG - Pushup completed: rep 23
+2025-07-15 03:05:57,310 - analysis_module - DEBUG - Pushup started at frame 763
+2025-07-15 03:05:58,029 - analysis_module - DEBUG - Pushup completed: rep 24
+2025-07-15 03:05:58,883 - analysis_module - DEBUG - Pushup started at frame 795
+2025-07-15 03:05:59,106 - analysis_module - DEBUG - Processed 800 frames
+2025-07-15 03:05:59,526 - analysis_module - DEBUG - Pushup completed: rep 25
+2025-07-15 03:06:01,861 - analysis_module - DEBUG - Pushup started at frame 844
+2025-07-15 03:06:02,958 - analysis_module - DEBUG - Pushup completed: rep 26
+2025-07-15 03:06:04,045 - analysis_module - DEBUG - Pushup started at frame 883
+2025-07-15 03:06:04,839 - analysis_module - DEBUG - Processed 900 frames
+2025-07-15 03:06:04,989 - analysis_module - DEBUG - Pushup completed: rep 27
+2025-07-15 03:06:06,130 - analysis_module - INFO - Pushup analysis complete. Found 27 reps
+2025-07-15 03:06:06,131 - analysis_module - INFO - Analysis completed in 42.04 seconds
+2025-07-15 03:06:06,131 - __main__ - INFO - Analysis completed for analysis_1752548723
+2025-07-15 03:06:06,136 - __main__ - INFO - Cleaned up video file
+2025-07-15 03:06:06,137 - __main__ - INFO - Video analysis completed successfully
+2025-07-15 03:06:06,144 - werkzeug - INFO - 10.84.1.66 - - [15/Jul/2025 03:06:06] "POST /api/analyze HTTP/1.1" 200 -
+2025-07-15 03:06:40,593 - __main__ - INFO - Chat request received
+2025-07-15 03:06:40,593 - __main__ - ERROR - Gemini API client not configured
+2025-07-15 03:06:40,593 - werkzeug - INFO - 10.84.1.66 - - [15/Jul/2025 03:06:40] "[35m[1mPOST /api/chat HTTP/1.1[0m" 500 -
+2025-07-15 03:09:34,091 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/MediaStreamFixer/app.py', reloading
+2025-07-15 03:09:34,639 - werkzeug - INFO -  * Restarting with stat
