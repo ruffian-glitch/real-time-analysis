@@ -235,9 +235,6 @@ def handle_analysis():
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
                 return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
-            else:
-                logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
-                return jsonify({"error": analysis_result.get('error', 'Analysis failed')}), 500
 
         except Exception as e:
             logger.error(f"Error during video analysis: {str(e)}", exc_info=True)
