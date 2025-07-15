@@ -464,3 +464,116 @@
 2025-07-15 03:27:30,756 - google_genai.models - INFO - AFC remote call 1 is done.
 2025-07-15 03:27:30,758 - __main__ - INFO - Received response from Gemini API
 2025-07-15 03:27:30,759 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:27:30] "POST /api/chat HTTP/1.1" 200 -
+2025-07-15 03:31:35,302 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/MediaStreamFixer/app.py', reloading
+2025-07-15 03:31:36,194 - werkzeug - INFO -  * Restarting with stat
+2025-07-15 03:31:45,174 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 03:31:45,360 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.193:5000
+2025-07-15 03:31:45,360 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-07-15 03:31:45,364 - werkzeug - INFO -  * Restarting with stat
+2025-07-15 03:31:49,121 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 03:31:49,154 - werkzeug - WARNING -  * Debugger is active!
+2025-07-15 03:31:49,163 - werkzeug - INFO -  * Debugger PIN: 379-754-651
+2025-07-15 03:31:49,279 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:31:49] "GET / HTTP/1.1" 200 -
+2025-07-15 03:31:49,414 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:31:49] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:31:49,543 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:31:49] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:31:50,014 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:31:50] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:31:53,080 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:31:53] "GET /settings HTTP/1.1" 200 -
+2025-07-15 03:31:53,225 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 03:31:53] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:31:54,147 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:31:54] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:32:03,371 - __main__ - INFO - Gemini API client initialized successfully
+2025-07-15 03:32:03,371 - __main__ - INFO - Gemini API key updated successfully
+2025-07-15 03:32:03,372 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:32:03] "POST /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:32:03,436 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:32:03] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:32:07,955 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:32:07] "GET / HTTP/1.1" 200 -
+2025-07-15 03:32:08,035 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:32:08] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:32:08,054 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:32:08] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:32:08,884 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 03:32:08] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:32:28,376 - __main__ - INFO - Analysis request received
+2025-07-15 03:32:32,658 - __main__ - INFO - Received drill_type: situps
+2025-07-15 03:32:32,658 - __main__ - INFO - Received video file: arihant jyotish kmowar.mp4
+2025-07-15 03:32:32,659 - __main__ - INFO - Video file size: 0
+2025-07-15 03:32:32,659 - __main__ - INFO - Saving video to: uploads/arihant_jyotish_kmowar_1752550352.mp4
+2025-07-15 03:32:32,890 - __main__ - INFO - Video saved successfully
+2025-07-15 03:32:32,890 - __main__ - INFO - Video file size: 79129774 bytes (75.46 MB)
+2025-07-15 03:32:32,891 - __main__ - INFO - Starting video analysis with timeout...
+2025-07-15 03:32:32,891 - __main__ - INFO - Starting analysis for situps on uploads/arihant_jyotish_kmowar_1752550352.mp4
+2025-07-15 03:32:32,891 - analysis_module - INFO - Analyzing video: uploads/arihant_jyotish_kmowar_1752550352.mp4 for drill type: situps
+2025-07-15 03:32:32,891 - analysis_module - INFO - Video file size: 79129774 bytes
+2025-07-15 03:32:32,909 - analysis_module - INFO - Video properties: 1280x720, 29.85757071954489 FPS, 1573 frames
+2025-07-15 03:32:32,934 - analysis_module - INFO - Starting situp analysis for: uploads/arihant_jyotish_kmowar_1752550352.mp4
+2025-07-15 03:32:32,934 - analysis_module - INFO - Video file size: 79129774 bytes
+2025-07-15 03:32:32,949 - analysis_module - INFO - Video properties: 1280x720, 29.85757071954489 FPS, 1573 frames
+2025-07-15 03:32:33,008 - analysis_module - INFO - Processing 1573 frames with skip=1
+2025-07-15 03:32:33,601 - analysis_module - DEBUG - Situp started at frame 1
+2025-07-15 03:32:34,266 - analysis_module - DEBUG - Situp completed: rep 1
+2025-07-15 03:32:39,256 - analysis_module - DEBUG - Processed 100 frames
+2025-07-15 03:32:45,599 - analysis_module - DEBUG - Processed 200 frames
+2025-07-15 03:32:52,078 - analysis_module - DEBUG - Processed 300 frames
+2025-07-15 03:32:58,679 - analysis_module - DEBUG - Processed 400 frames
+2025-07-15 03:33:04,392 - analysis_module - DEBUG - Processed 500 frames
+2025-07-15 03:33:10,796 - analysis_module - DEBUG - Processed 600 frames
+2025-07-15 03:33:15,557 - analysis_module - DEBUG - Processed 700 frames
+2025-07-15 03:33:20,330 - analysis_module - DEBUG - Processed 800 frames
+2025-07-15 03:33:24,814 - analysis_module - DEBUG - Processed 900 frames
+2025-07-15 03:33:29,199 - analysis_module - DEBUG - Processed 1000 frames
+2025-07-15 03:33:34,122 - analysis_module - DEBUG - Processed 1100 frames
+2025-07-15 03:33:38,384 - analysis_module - DEBUG - Processed 1200 frames
+2025-07-15 03:33:42,513 - analysis_module - DEBUG - Processed 1300 frames
+2025-07-15 03:33:47,132 - analysis_module - DEBUG - Processed 1400 frames
+2025-07-15 03:33:51,540 - analysis_module - DEBUG - Processed 1500 frames
+2025-07-15 03:33:55,141 - analysis_module - INFO - Situp analysis complete. Found 1 reps
+2025-07-15 03:33:55,141 - analysis_module - INFO - Analysis completed in 82.21 seconds
+2025-07-15 03:33:55,141 - __main__ - INFO - Analysis completed for analysis_1752550352
+2025-07-15 03:33:55,142 - __main__ - INFO - Video analysis completed successfully
+2025-07-15 03:33:55,146 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 03:33:55] "POST /api/analyze HTTP/1.1" 200 -
+2025-07-15 03:35:31,412 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 03:35:31] "GET /settings HTTP/1.1" 200 -
+2025-07-15 03:35:31,524 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:35:31] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:35:32,163 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:35:32] "GET /api/settings/gemini-key HTTP/1.1" 200 -
+2025-07-15 03:35:35,466 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:35:35] "GET / HTTP/1.1" 200 -
+2025-07-15 03:35:35,631 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 03:35:35] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:35:35,665 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:35:35] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:35:35,978 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:35:35] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:36:07,965 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:36:07] "GET / HTTP/1.1" 200 -
+2025-07-15 03:36:08,024 - werkzeug - INFO - 10.84.0.63 - - [15/Jul/2025 03:36:08] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 03:36:08,045 - werkzeug - INFO - 10.84.5.115 - - [15/Jul/2025 03:36:08] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 03:36:08,371 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:36:08] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 03:36:22,779 - __main__ - INFO - Analysis request received
+2025-07-15 03:36:27,001 - __main__ - INFO - Received drill_type: chair_hold
+2025-07-15 03:36:27,001 - __main__ - INFO - Received video file: arihant jyotish konwar.mp4
+2025-07-15 03:36:27,001 - __main__ - INFO - Video file size: 0
+2025-07-15 03:36:27,002 - __main__ - INFO - Saving video to: uploads/arihant_jyotish_konwar_1752550587.mp4
+2025-07-15 03:36:27,404 - __main__ - INFO - Video saved successfully
+2025-07-15 03:36:27,408 - __main__ - INFO - Video file size: 81169242 bytes (77.41 MB)
+2025-07-15 03:36:27,409 - __main__ - INFO - Starting video analysis with timeout...
+2025-07-15 03:36:27,409 - __main__ - INFO - Starting analysis for chair_hold on uploads/arihant_jyotish_konwar_1752550587.mp4
+2025-07-15 03:36:27,411 - analysis_module - INFO - Analyzing video: uploads/arihant_jyotish_konwar_1752550587.mp4 for drill type: chair_hold
+2025-07-15 03:36:27,412 - analysis_module - INFO - Video file size: 81169242 bytes
+2025-07-15 03:36:27,466 - analysis_module - INFO - Video properties: 720x1280, 29.87968890954095 FPS, 1609 frames
+2025-07-15 03:36:27,491 - analysis_module - INFO - Starting chair hold analysis for: uploads/arihant_jyotish_konwar_1752550587.mp4
+2025-07-15 03:36:27,495 - analysis_module - INFO - Video file size: 81169242 bytes
+2025-07-15 03:36:27,517 - analysis_module - INFO - Video properties: 720x1280, 29.87968890954095 FPS, 1609 frames
+2025-07-15 03:36:27,581 - analysis_module - INFO - Processing 1609 frames with skip=1
+2025-07-15 03:36:34,792 - analysis_module - DEBUG - Processed 100 frames
+2025-07-15 03:36:41,454 - analysis_module - DEBUG - Processed 200 frames
+2025-07-15 03:36:49,444 - analysis_module - DEBUG - Processed 300 frames
+2025-07-15 03:36:55,889 - analysis_module - DEBUG - Processed 400 frames
+2025-07-15 03:37:02,447 - analysis_module - DEBUG - Processed 500 frames
+2025-07-15 03:37:09,435 - analysis_module - DEBUG - Processed 600 frames
+2025-07-15 03:37:17,662 - analysis_module - DEBUG - Processed 700 frames
+2025-07-15 03:37:24,973 - analysis_module - DEBUG - Processed 800 frames
+2025-07-15 03:37:31,419 - analysis_module - DEBUG - Processed 900 frames
+2025-07-15 03:37:37,965 - analysis_module - DEBUG - Processed 1000 frames
+2025-07-15 03:37:44,845 - analysis_module - DEBUG - Processed 1100 frames
+2025-07-15 03:37:52,612 - analysis_module - DEBUG - Processed 1200 frames
+2025-07-15 03:38:00,738 - analysis_module - DEBUG - Processed 1300 frames
+2025-07-15 03:38:09,366 - analysis_module - DEBUG - Processed 1400 frames
+2025-07-15 03:38:19,060 - analysis_module - DEBUG - Processed 1500 frames
+2025-07-15 03:38:27,833 - analysis_module - DEBUG - Processed 1600 frames
+2025-07-15 03:38:28,672 - analysis_module - INFO - Chair hold analysis complete. Total hold time: 0.77s
+2025-07-15 03:38:28,673 - analysis_module - INFO - Analysis completed in 121.18 seconds
+2025-07-15 03:38:28,673 - __main__ - INFO - Analysis completed for analysis_1752550587
+2025-07-15 03:38:28,709 - __main__ - INFO - Video analysis completed successfully
+2025-07-15 03:38:28,723 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 03:38:28] "POST /api/analyze HTTP/1.1" 200 -
