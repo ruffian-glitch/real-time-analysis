@@ -11,6 +11,7 @@ dependencies = [
     "gunicorn>=23.0.0",
     "mediapipe>=0.10.21",
     "numpy>=1.26.4",
+    "opencv-python-headless>=4.11.0.86",
     "opencv-python>=4.11.0.86",
     "psycopg2-binary>=2.9.10",
     "sift-stack-py>=0.7.0",

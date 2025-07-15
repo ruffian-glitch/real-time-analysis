@@ -3,3 +3,100 @@
 2025-07-14 15:39:44,448 - app - INFO - Gemini API client initialized successfully
 2025-07-14 15:40:17,902 - app - INFO - Gemini API client initialized successfully
 2025-07-14 15:43:18,073 - app - INFO - Gemini API client initialized successfully
+2025-07-15 02:45:43,210 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 02:45:43,257 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.128.193:5000
+2025-07-15 02:45:43,257 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-07-15 02:45:43,265 - werkzeug - INFO -  * Restarting with stat
+2025-07-15 02:45:45,433 - __main__ - WARNING - Gemini API key not configured - chat functionality will be disabled
+2025-07-15 02:45:45,454 - werkzeug - WARNING -  * Debugger is active!
+2025-07-15 02:45:45,463 - werkzeug - INFO -  * Debugger PIN: 621-147-660
+2025-07-15 02:45:45,554 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:45] "GET / HTTP/1.1" 200 -
+2025-07-15 02:45:45,617 - werkzeug - INFO - 10.84.7.177 - - [15/Jul/2025 02:45:45] "GET / HTTP/1.1" 200 -
+2025-07-15 02:45:45,654 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:45] "GET /static/style.css HTTP/1.1" 200 -
+2025-07-15 02:45:45,704 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:45] "[36mGET /static/style.css HTTP/1.1[0m" 304 -
+2025-07-15 02:45:45,742 - werkzeug - INFO - 10.84.8.33 - - [15/Jul/2025 02:45:45] "GET /static/app.js HTTP/1.1" 200 -
+2025-07-15 02:45:45,780 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:45] "[36mGET /static/app.js HTTP/1.1[0m" 304 -
+2025-07-15 02:45:46,277 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:46] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 02:45:46,530 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:45:46] "[33mGET /api/health HTTP/1.1[0m" 404 -
+2025-07-15 02:46:17,961 - __main__ - INFO - Analysis request received
+2025-07-15 02:46:29,938 - __main__ - INFO - Received drill_type: squats
+2025-07-15 02:46:29,939 - __main__ - INFO - Received video file: krishnapan hazarika.mp4
+2025-07-15 02:46:29,939 - __main__ - INFO - Video file size: 0
+2025-07-15 02:46:29,939 - __main__ - INFO - Saving video to: uploads/krishnapan_hazarika_1752547589.mp4
+2025-07-15 02:46:30,075 - __main__ - INFO - Video saved successfully
+2025-07-15 02:46:30,076 - __main__ - INFO - Video file size: 46690459 bytes (44.53 MB)
+2025-07-15 02:46:30,076 - __main__ - INFO - Starting video analysis with timeout...
+2025-07-15 02:46:30,076 - __main__ - INFO - Starting analysis for squats on uploads/krishnapan_hazarika_1752547589.mp4
+2025-07-15 02:46:30,076 - analysis_module - INFO - Analyzing video: uploads/krishnapan_hazarika_1752547589.mp4 for drill type: squats
+2025-07-15 02:46:30,076 - analysis_module - INFO - Video file size: 46690459 bytes
+2025-07-15 02:46:30,093 - analysis_module - INFO - Video properties: 720x1280, 29.919727823041757 FPS, 923 frames
+2025-07-15 02:46:30,105 - analysis_module - INFO - Starting squat analysis for: uploads/krishnapan_hazarika_1752547589.mp4
+2025-07-15 02:46:30,105 - analysis_module - INFO - Video file size: 46690459 bytes
+2025-07-15 02:46:30,116 - analysis_module - INFO - Video properties: 720x1280, 29.919727823041757 FPS, 923 frames
+2025-07-15 02:46:30,170 - analysis_module - INFO - Processing 923 frames with skip=1
+2025-07-15 02:46:32,447 - analysis_module - DEBUG - Squat started at frame 1
+2025-07-15 02:46:33,098 - analysis_module - DEBUG - Squat completed: rep 1
+2025-07-15 02:46:33,952 - analysis_module - DEBUG - Squat started at frame 35
+2025-07-15 02:46:34,685 - analysis_module - DEBUG - Squat completed: rep 2
+2025-07-15 02:46:35,424 - analysis_module - DEBUG - Squat started at frame 73
+2025-07-15 02:46:36,210 - analysis_module - DEBUG - Squat completed: rep 3
+2025-07-15 02:46:36,473 - analysis_module - DEBUG - Processed 100 frames
+2025-07-15 02:46:37,115 - analysis_module - DEBUG - Squat started at frame 113
+2025-07-15 02:46:37,827 - analysis_module - DEBUG - Squat completed: rep 4
+2025-07-15 02:46:38,671 - analysis_module - DEBUG - Squat started at frame 153
+2025-07-15 02:46:39,369 - analysis_module - DEBUG - Squat completed: rep 5
+2025-07-15 02:46:40,286 - analysis_module - DEBUG - Squat started at frame 195
+2025-07-15 02:46:40,444 - analysis_module - DEBUG - Processed 200 frames
+2025-07-15 02:46:40,944 - analysis_module - DEBUG - Squat completed: rep 6
+2025-07-15 02:46:41,700 - analysis_module - DEBUG - Squat started at frame 232
+2025-07-15 02:46:42,773 - analysis_module - DEBUG - Squat completed: rep 7
+2025-07-15 02:46:43,594 - analysis_module - DEBUG - Squat started at frame 272
+2025-07-15 02:46:44,684 - analysis_module - DEBUG - Squat completed: rep 8
+2025-07-15 02:46:45,104 - analysis_module - DEBUG - Processed 300 frames
+2025-07-15 02:46:45,765 - analysis_module - DEBUG - Squat started at frame 313
+2025-07-15 02:46:46,716 - analysis_module - DEBUG - Squat completed: rep 9
+2025-07-15 02:46:47,556 - analysis_module - DEBUG - Squat started at frame 352
+2025-07-15 02:46:48,268 - analysis_module - DEBUG - Squat completed: rep 10
+2025-07-15 02:46:48,965 - analysis_module - DEBUG - Squat started at frame 392
+2025-07-15 02:46:49,215 - analysis_module - DEBUG - Processed 400 frames
+2025-07-15 02:46:49,713 - analysis_module - DEBUG - Squat completed: rep 11
+2025-07-15 02:46:50,328 - analysis_module - DEBUG - Squat started at frame 433
+2025-07-15 02:46:51,018 - analysis_module - DEBUG - Squat completed: rep 12
+2025-07-15 02:46:51,629 - analysis_module - DEBUG - Squat started at frame 473
+2025-07-15 02:46:52,322 - analysis_module - DEBUG - Squat completed: rep 13
+2025-07-15 02:46:52,501 - analysis_module - DEBUG - Processed 500 frames
+2025-07-15 02:46:52,920 - analysis_module - DEBUG - Squat started at frame 512
+2025-07-15 02:46:53,686 - analysis_module - DEBUG - Squat completed: rep 14
+2025-07-15 02:46:54,446 - analysis_module - DEBUG - Squat started at frame 551
+2025-07-15 02:46:55,134 - analysis_module - DEBUG - Squat completed: rep 15
+2025-07-15 02:46:55,818 - analysis_module - DEBUG - Squat started at frame 589
+2025-07-15 02:46:56,163 - analysis_module - DEBUG - Processed 600 frames
+2025-07-15 02:46:56,500 - analysis_module - DEBUG - Squat completed: rep 16
+2025-07-15 02:46:57,194 - analysis_module - DEBUG - Squat started at frame 628
+2025-07-15 02:46:57,890 - analysis_module - DEBUG - Squat completed: rep 17
+2025-07-15 02:46:58,520 - analysis_module - DEBUG - Squat started at frame 667
+2025-07-15 02:46:59,255 - analysis_module - DEBUG - Squat completed: rep 18
+2025-07-15 02:46:59,732 - analysis_module - DEBUG - Processed 700 frames
+2025-07-15 02:47:00,031 - analysis_module - DEBUG - Squat started at frame 705
+2025-07-15 02:47:00,825 - analysis_module - DEBUG - Squat completed: rep 19
+2025-07-15 02:47:01,622 - analysis_module - DEBUG - Squat started at frame 744
+2025-07-15 02:47:02,417 - analysis_module - DEBUG - Squat completed: rep 20
+2025-07-15 02:47:03,202 - analysis_module - DEBUG - Squat started at frame 783
+2025-07-15 02:47:03,644 - analysis_module - DEBUG - Squat completed: rep 21
+2025-07-15 02:47:03,745 - analysis_module - DEBUG - Processed 800 frames
+2025-07-15 02:47:04,147 - analysis_module - DEBUG - Squat started at frame 810
+2025-07-15 02:47:04,840 - analysis_module - DEBUG - Squat completed: rep 22
+2025-07-15 02:47:05,697 - analysis_module - DEBUG - Squat started at frame 848
+2025-07-15 02:47:06,578 - analysis_module - DEBUG - Squat completed: rep 23
+2025-07-15 02:47:07,275 - analysis_module - DEBUG - Squat started at frame 885
+2025-07-15 02:47:07,801 - analysis_module - DEBUG - Processed 900 frames
+2025-07-15 02:47:08,012 - analysis_module - DEBUG - Squat completed: rep 24
+2025-07-15 02:47:08,614 - analysis_module - INFO - Squat analysis complete. Found 24 reps
+2025-07-15 02:47:08,614 - analysis_module - INFO - Analysis completed in 38.51 seconds
+2025-07-15 02:47:08,614 - __main__ - INFO - Analysis completed for analysis_1752547589
+2025-07-15 02:47:08,623 - __main__ - INFO - Cleaned up video file
+2025-07-15 02:47:08,623 - __main__ - INFO - Video analysis completed successfully
+2025-07-15 02:47:08,629 - werkzeug - INFO - 10.84.2.243 - - [15/Jul/2025 02:47:08] "POST /api/analyze HTTP/1.1" 200 -
