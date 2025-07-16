@@ -1,0 +1,156 @@
+{
+  "drill_type": "pushups",
+  "total_reps": 18,
+  "reps": [
+    {
+      "rep_number": 1,
+      "start_frame": 3,
+      "end_frame": 23,
+      "max_elbow_angle": 155.6,
+      "min_elbow_angle": 58.0,
+      "body_angle_at_bottom": 46.9
+    },
+    {
+      "rep_number": 2,
+      "start_frame": 35,
+      "end_frame": 55,
+      "max_elbow_angle": 163.1,
+      "min_elbow_angle": 51.9,
+      "body_angle_at_bottom": 46.8
+    },
+    {
+      "rep_number": 3,
+      "start_frame": 68,
+      "end_frame": 87,
+      "max_elbow_angle": 164.5,
+      "min_elbow_angle": 51.1,
+      "body_angle_at_bottom": 45.9
+    },
+    {
+      "rep_number": 4,
+      "start_frame": 101,
+      "end_frame": 121,
+      "max_elbow_angle": 163.7,
+      "min_elbow_angle": 50.2,
+      "body_angle_at_bottom": 46.7
+    },
+    {
+      "rep_number": 5,
+      "start_frame": 133,
+      "end_frame": 152,
+      "max_elbow_angle": 167.3,
+      "min_elbow_angle": 51.1,
+      "body_angle_at_bottom": 46.8
+    },
+    {
+      "rep_number": 6,
+      "start_frame": 166,
+      "end_frame": 185,
+      "max_elbow_angle": 165.8,
+      "min_elbow_angle": 47.4,
+      "body_angle_at_bottom": 46.8
+    },
+    {
+      "rep_number": 7,
+      "start_frame": 198,
+      "end_frame": 217,
+      "max_elbow_angle": 164.8,
+      "min_elbow_angle": 49.8,
+      "body_angle_at_bottom": 45.4
+    },
+    {
+      "rep_number": 8,
+      "start_frame": 229,
+      "end_frame": 248,
+      "max_elbow_angle": 167.5,
+      "min_elbow_angle": 51.5,
+      "body_angle_at_bottom": 44.3
+    },
+    {
+      "rep_number": 9,
+      "start_frame": 262,
+      "end_frame": 281,
+      "max_elbow_angle": 165.8,
+      "min_elbow_angle": 50.9,
+      "body_angle_at_bottom": 46.9
+    },
+    {
+      "rep_number": 10,
+      "start_frame": 295,
+      "end_frame": 314,
+      "max_elbow_angle": 164.4,
+      "min_elbow_angle": 51.3,
+      "body_angle_at_bottom": 47.2
+    },
+    {
+      "rep_number": 11,
+      "start_frame": 328,
+      "end_frame": 349,
+      "max_elbow_angle": 164.5,
+      "min_elbow_angle": 51.3,
+      "body_angle_at_bottom": 48.3
+    },
+    {
+      "rep_number": 12,
+      "start_frame": 363,
+      "end_frame": 383,
+      "max_elbow_angle": 164.0,
+      "min_elbow_angle": 49.3,
+      "body_angle_at_bottom": 43.7
+    },
+    {
+      "rep_number": 13,
+      "start_frame": 397,
+      "end_frame": 417,
+      "max_elbow_angle": 165.6,
+      "min_elbow_angle": 50.2,
+      "body_angle_at_bottom": 45.0
+    },
+    {
+      "rep_number": 14,
+      "start_frame": 433,
+      "end_frame": 451,
+      "max_elbow_angle": 168.2,
+      "min_elbow_angle": 51.1,
+      "body_angle_at_bottom": 49.7
+    },
+    {
+      "rep_number": 15,
+      "start_frame": 467,
+      "end_frame": 487,
+      "max_elbow_angle": 164.9,
+      "min_elbow_angle": 53.1,
+      "body_angle_at_bottom": 43.1
+    },
+    {
+      "rep_number": 16,
+      "start_frame": 502,
+      "end_frame": 521,
+      "max_elbow_angle": 166.4,
+      "min_elbow_angle": 54.1,
+      "body_angle_at_bottom": 46.9
+    },
+    {
+      "rep_number": 17,
+      "start_frame": 537,
+      "end_frame": 558,
+      "max_elbow_angle": 161.1,
+      "min_elbow_angle": 55.6,
+      "body_angle_at_bottom": 42.9
+    },
+    {
+      "rep_number": 18,
+      "start_frame": 574,
+      "end_frame": 597,
+      "max_elbow_angle": 157.7,
+      "min_elbow_angle": 52.3,
+      "body_angle_at_bottom": 43.6
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 627,
+    "duration": 20.9
+  },
+  "video_path": "pushups_demo_1752651798_corrected.mp4"
+}

@@ -144,8 +144,13 @@ async function handleVideoUpload(e) {
         console.log(`Processing completed in ${processingTime.toFixed(2)} seconds`);
         
         if (response.ok) {
-            analysisData = result;
-            showResults(result);
+            // NEW: Redirect to /results if redirect_url is present
+            if (result.redirect_url) {
+                window.location.href = result.redirect_url;
+            } else {
+                analysisData = result;
+                showResults(result);
+            }
         } else {
             showError(result.error || 'Analysis failed. Please try again.');
         }
@@ -532,6 +537,74 @@ function displayAnalysisResults(data) {
     }
     
     detailedDiv.innerHTML = detailedHtml;
+
+    // --- Add real-time overlay setup after video is rendered ---
+    setTimeout(() => {
+        const videoElem = document.querySelector('#results-section video');
+        if (videoElem && data && data.reps) {
+            console.log('[DEBUG] Calling setupRealTimeOverlay', { videoElem, data });
+            setupRealTimeOverlay(videoElem, data);
+        } else {
+            console.log('[DEBUG] Video element or reps not found', { videoElem, data });
+        }
+    }, 500);
+}
+
+function setupRealTimeOverlay(videoElem, analysisData) {
+    console.log('[DEBUG] setupRealTimeOverlay called', { videoElem, analysisData });
+    // Remove any existing overlay
+    let overlayDiv = document.getElementById('realtime-metrics-overlay');
+    if (overlayDiv) overlayDiv.remove();
+    // Create overlay
+    overlayDiv = document.createElement('div');
+    overlayDiv.id = 'realtime-metrics-overlay';
+    overlayDiv.style.position = 'absolute';
+    overlayDiv.style.left = '0';
+    overlayDiv.style.top = '0';
+    overlayDiv.style.zIndex = '10';
+    overlayDiv.style.pointerEvents = 'none';
+    overlayDiv.style.padding = '16px';
+    overlayDiv.style.fontSize = '1.1em';
+    overlayDiv.style.fontWeight = 'bold';
+    overlayDiv.style.color = '#fff';
+    overlayDiv.style.textShadow = '0 2px 8px #000a';
+    overlayDiv.innerHTML = '';
+    // Position overlay parent
+    const parent = videoElem.parentElement;
+    parent.style.position = 'relative';
+    parent.appendChild(overlayDiv);
+
+    function updateOverlay() {
+        const t = videoElem.currentTime;
+        console.log('[DEBUG] updateOverlay', { t, reps: analysisData.reps });
+        let repCount = 0;
+        let status = 'Up';
+        let repIdx = -1;
+        const drill = (analysisData.drill_type || '').toLowerCase();
+        if (["pushups","situps","squats"].includes(drill) && analysisData.reps && analysisData.reps.length > 0) {
+            for (let i = 0; i < analysisData.reps.length; ++i) {
+                const rep = analysisData.reps[i];
+                if (t >= rep.end_time) {
+                    repCount++;
+                }
+                if (t >= rep.start_time && t <= rep.end_time) {
+                    repIdx = i;
+                    const mid = (rep.start_time + rep.end_time) / 2;
+                    status = t < mid ? 'Down' : 'Up';
+                }
+            }
+            overlayDiv.innerHTML = `<div style="background: rgba(0,0,0,0.7); border-radius: 12px; padding: 12px 20px; min-width: 120px; box-shadow: 0 2px 8px #000a; display: inline-block;">
+                <div>Rep Count: <b>${repCount}</b></div>
+                <div>Status: <b>${status}</b></div>
+            </div>`;
+        } else {
+            overlayDiv.innerHTML = '';
+        }
+    }
+    videoElem.addEventListener('timeupdate', updateOverlay);
+    videoElem.addEventListener('seeked', updateOverlay);
+    videoElem.addEventListener('loadeddata', updateOverlay);
+    updateOverlay();
 }
 
 function resetForm() {

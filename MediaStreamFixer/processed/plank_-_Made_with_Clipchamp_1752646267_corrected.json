@@ -1,0 +1,20 @@
+{
+  "drill_type": "elbow_plank",
+  "total_hold_time": 17.7,
+  "time_series_data": [
+    {
+      "start": 2.93,
+      "end": 4.93
+    },
+    {
+      "start": 5.1,
+      "end": 20.8
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 624,
+    "duration": 20.8
+  },
+  "video_path": "plank_-_Made_with_Clipchamp_1752646267_corrected.mp4"
+}

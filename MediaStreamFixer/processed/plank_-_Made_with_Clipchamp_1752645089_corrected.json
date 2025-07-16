@@ -1,0 +1,84 @@
+{
+  "drill_type": "elbow_plank",
+  "total_hold_time": 17.7,
+  "time_series_data": [
+    {
+      "timestamp": 2.93,
+      "body_angle": 161.9
+    },
+    {
+      "timestamp": 3.93,
+      "body_angle": 172.3
+    },
+    {
+      "timestamp": 5.1,
+      "body_angle": 160.2
+    },
+    {
+      "timestamp": 6.1,
+      "body_angle": 168.9
+    },
+    {
+      "timestamp": 7.1,
+      "body_angle": 165.3
+    },
+    {
+      "timestamp": 8.1,
+      "body_angle": 165.1
+    },
+    {
+      "timestamp": 9.1,
+      "body_angle": 165.6
+    },
+    {
+      "timestamp": 10.1,
+      "body_angle": 164.7
+    },
+    {
+      "timestamp": 11.1,
+      "body_angle": 167.5
+    },
+    {
+      "timestamp": 12.1,
+      "body_angle": 168.3
+    },
+    {
+      "timestamp": 13.1,
+      "body_angle": 170.0
+    },
+    {
+      "timestamp": 14.1,
+      "body_angle": 168.1
+    },
+    {
+      "timestamp": 15.1,
+      "body_angle": 167.4
+    },
+    {
+      "timestamp": 16.1,
+      "body_angle": 168.9
+    },
+    {
+      "timestamp": 17.1,
+      "body_angle": 169.5
+    },
+    {
+      "timestamp": 18.1,
+      "body_angle": 168.3
+    },
+    {
+      "timestamp": 19.1,
+      "body_angle": 173.9
+    },
+    {
+      "timestamp": 20.1,
+      "body_angle": 176.0
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 624,
+    "duration": 20.8
+  },
+  "video_path": "plank_-_Made_with_Clipchamp_1752645089_corrected.mp4"
+}

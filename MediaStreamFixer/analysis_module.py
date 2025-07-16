@@ -8,6 +8,8 @@ import time
 import threading
 from typing import Dict, List, Tuple, Optional
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
+import tempfile
+from moviepy import VideoFileClip, vfx
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -485,7 +487,7 @@ def analyze_chair_hold(video_path: str) -> Dict:
     results = {
         "drill_type": "chair_hold",
         "total_hold_time": 0,
-        "time_series_data": [],
+        "time_series_data": [],  # Now a list of {start, end}
         "video_info": {
             "fps": fps,
             "total_frames": frame_count,
@@ -496,8 +498,7 @@ def analyze_chair_hold(video_path: str) -> Dict:
     # Analysis state
     state = {
         'hold_start_time': None,
-        'consecutive_hold_frames': 0,
-        'last_data_timestamp': 0
+        'consecutive_hold_frames': 0
     }
     
     def process_frame(frame_number, pose_results, fps):
@@ -540,45 +541,50 @@ def analyze_chair_hold(video_path: str) -> Dict:
                 
                 avg_knee_angle = sum(knee_angles) / len(knee_angles) if knee_angles else 90
                 avg_hip_angle = sum(hip_angles) / len(hip_angles) if hip_angles else 90
-                
                 timestamp = frame_number / fps if fps > 0 else frame_number
-                
+                is_valid = 70 <= avg_knee_angle <= 120 and 70 <= avg_hip_angle <= 140
+                logger.debug(f"[ChairHold] Frame {frame_number} t={timestamp:.2f}s knee={avg_knee_angle:.1f} hip={avg_hip_angle:.1f} valid={is_valid}")
                 # Check if in proper chair hold position
-                if 70 <= avg_knee_angle <= 120 and 70 <= avg_hip_angle <= 120:
+                if is_valid:
                     state['consecutive_hold_frames'] += 1
-                    
-                    if state['consecutive_hold_frames'] >= 3:  # Must hold for at least 3 frames
+                    if state['consecutive_hold_frames'] >= 3:
                         if state['hold_start_time'] is None:
                             state['hold_start_time'] = timestamp
-                        
-                        # Sample data points (not every frame)
-                        if timestamp - state['last_data_timestamp'] >= 1.0:
-                            time_data = {
-                                "timestamp": round(timestamp, 2),
-                                "knee_angle": round(avg_knee_angle, 1),
-                                "hip_angle": round(avg_hip_angle, 1)
-                            }
-                            results["time_series_data"].append(time_data)
-                            state['last_data_timestamp'] = timestamp
+                            logger.info(f"[ChairHold] Hold segment started at {timestamp:.2f}s (frame {frame_number})")
                 else:
                     state['consecutive_hold_frames'] = 0
                     if state['hold_start_time'] is not None:
+                        results["time_series_data"].append({
+                            "start": round(state['hold_start_time'], 2),
+                            "end": round(timestamp, 2)
+                        })
+                        logger.info(f"[ChairHold] Hold segment ended at {timestamp:.2f}s (frame {frame_number}), duration={timestamp-state['hold_start_time']:.2f}s")
                         results["total_hold_time"] += timestamp - state['hold_start_time']
                         state['hold_start_time'] = None
-    
+            else:
+                state['consecutive_hold_frames'] = 0
+                if state['hold_start_time'] is not None:
+                    timestamp = frame_number / fps if fps > 0 else frame_number
+                    results["time_series_data"].append({
+                        "start": round(state['hold_start_time'], 2),
+                        "end": round(timestamp, 2)
+                    })
+                    logger.info(f"[ChairHold] Hold segment ended at {timestamp:.2f}s (frame {frame_number}), duration={timestamp-state['hold_start_time']:.2f}s (landmarks missing)")
+                    results["total_hold_time"] += timestamp - state['hold_start_time']
+                    state['hold_start_time'] = None
     try:
         process_video_frames(video_path, process_frame)
-        
-        # Add any remaining hold time
+        # Add any remaining hold segment
         if state['hold_start_time'] is not None:
             final_timestamp = results["video_info"]["duration"]
+            results["time_series_data"].append({
+                "start": round(state['hold_start_time'], 2),
+                "end": round(final_timestamp, 2)
+            })
             results["total_hold_time"] += final_timestamp - state['hold_start_time']
-        
         results["total_hold_time"] = round(results["total_hold_time"], 2)
-        
         logger.info(f"Chair hold analysis complete. Total hold time: {results['total_hold_time']:.2f}s")
         return results
-        
     except Exception as e:
         logger.error(f"Error in chair hold analysis: {e}")
         raise
@@ -598,7 +604,7 @@ def analyze_elbow_plank(video_path: str) -> Dict:
     results = {
         "drill_type": "elbow_plank",
         "total_hold_time": 0,
-        "time_series_data": [],
+        "time_series_data": [],  # Now a list of {start, end}
         "video_info": {
             "fps": fps,
             "total_frames": frame_count,
@@ -609,8 +615,7 @@ def analyze_elbow_plank(video_path: str) -> Dict:
     # Analysis state
     state = {
         'hold_start_time': None,
-        'consecutive_hold_frames': 0,
-        'last_data_timestamp': 0
+        'consecutive_hold_frames': 0
     }
     
     def process_frame(frame_number, pose_results, fps):
@@ -630,31 +635,41 @@ def analyze_elbow_plank(video_path: str) -> Dict:
                 # Check if in proper plank position (body should be relatively straight)
                 if 160 <= body_angle <= 200:  # Allow some flexibility for proper plank
                     state['consecutive_hold_frames'] += 1
-                    
-                    if state['consecutive_hold_frames'] >= 3:  # Must hold for at least 3 frames
+                    if state['consecutive_hold_frames'] >= 3:
                         if state['hold_start_time'] is None:
                             state['hold_start_time'] = timestamp
-                        
-                        # Sample data points
-                        if timestamp - state['last_data_timestamp'] >= 1.0:
-                            time_data = {
-                                "timestamp": round(timestamp, 2),
-                                "body_angle": round(body_angle, 1)
-                            }
-                            results["time_series_data"].append(time_data)
-                            state['last_data_timestamp'] = timestamp
                 else:
                     state['consecutive_hold_frames'] = 0
                     if state['hold_start_time'] is not None:
+                        # End of a valid hold segment
+                        results["time_series_data"].append({
+                            "start": round(state['hold_start_time'], 2),
+                            "end": round(timestamp, 2)
+                        })
                         results["total_hold_time"] += timestamp - state['hold_start_time']
                         state['hold_start_time'] = None
+            else:
+                # Landmarks not valid, treat as breaking the plank
+                state['consecutive_hold_frames'] = 0
+                if state['hold_start_time'] is not None:
+                    timestamp = frame_number / fps if fps > 0 else frame_number
+                    results["time_series_data"].append({
+                        "start": round(state['hold_start_time'], 2),
+                        "end": round(timestamp, 2)
+                    })
+                    results["total_hold_time"] += timestamp - state['hold_start_time']
+                    state['hold_start_time'] = None
     
     try:
         process_video_frames(video_path, process_frame)
         
-        # Add any remaining hold time
+        # Add any remaining hold segment
         if state['hold_start_time'] is not None:
             final_timestamp = results["video_info"]["duration"]
+            results["time_series_data"].append({
+                "start": round(state['hold_start_time'], 2),
+                "end": round(final_timestamp, 2)
+            })
             results["total_hold_time"] += final_timestamp - state['hold_start_time']
         
         results["total_hold_time"] = round(results["total_hold_time"], 2)
@@ -666,9 +681,9 @@ def analyze_elbow_plank(video_path: str) -> Dict:
         logger.error(f"Error in elbow plank analysis: {e}")
         raise
 
-def analyze_single_leg_balance(video_path: str, leg_side: str) -> Dict:
-    """Analyze single leg balance exercise from video."""
-    logger.info(f"Starting single leg balance analysis for: {video_path}, leg: {leg_side}")
+def analyze_single_leg_balance(video_path: str) -> Dict:
+    """Analyze single leg balance exercise from video, supporting leg switching and foul detection."""
+    logger.info(f"Starting single leg balance analysis for: {video_path}")
     
     if not validate_video_file(video_path):
         raise Exception("Invalid video file or cannot read video")
@@ -680,10 +695,10 @@ def analyze_single_leg_balance(video_path: str, leg_side: str) -> Dict:
     
     results = {
         "drill_type": "single_leg_balance",
-        "leg_side": leg_side,
         "total_balance_time": 0,
         "total_fouls": 0,
         "foul_data": [],
+        "time_series_data": [],
         "video_info": {
             "fps": fps,
             "total_frames": frame_count,
@@ -693,7 +708,9 @@ def analyze_single_leg_balance(video_path: str, leg_side: str) -> Dict:
     
     # Analysis state
     state = {
-        'balance_start_time': None,
+        'segment_start_time': None,
+        'segment_leg_side': None,
+        'last_leg_side': None,
         'last_foul_time': None,
         'foul_cooldown': 2.0,
         'consecutive_balance_frames': 0,
@@ -702,71 +719,201 @@ def analyze_single_leg_balance(video_path: str, leg_side: str) -> Dict:
     
     def process_frame(frame_number, pose_results, fps):
         if pose_results.pose_landmarks:
-            # Get ankle positions
             left_ankle = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_ANKLE)
             right_ankle = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_ANKLE)
-            
-            # Only proceed if we have valid landmarks
             if left_ankle[0] is not None and right_ankle[0] is not None:
                 timestamp = frame_number / fps if fps > 0 else frame_number
-                
-                # Determine if balancing on correct leg
-                if leg_side == 'left':
-                    standing_ankle = left_ankle
-                    lifted_ankle = right_ankle
+                # Determine which leg is lifted (higher y means lower on screen)
+                if left_ankle[1] < right_ankle[1] - 0.05:
+                    current_leg = 'right'  # Right ankle is higher (lifted)
+                elif right_ankle[1] < left_ankle[1] - 0.05:
+                    current_leg = 'left'   # Left ankle is higher (lifted)
                 else:
-                    standing_ankle = right_ankle
-                    lifted_ankle = left_ankle
-                
-                # Check if lifted foot is sufficiently raised (simple heuristic)
-                foot_separation = abs(lifted_ankle[1] - standing_ankle[1])
-                is_balanced = foot_separation > 0.05  # Threshold for detection
-                
+                    current_leg = None  # Neither clearly lifted
+                # Check if balanced (one foot clearly off the ground)
+                is_balanced = current_leg is not None
+                # Handle leg switching and segment tracking
                 if is_balanced:
                     state['consecutive_balance_frames'] += 1
                     state['consecutive_foul_frames'] = 0
-                    
-                    if state['consecutive_balance_frames'] >= 3:  # Must balance for at least 3 frames
-                        if state['balance_start_time'] is None:
-                            state['balance_start_time'] = timestamp
+                    if state['segment_start_time'] is None or state['segment_leg_side'] != current_leg:
+                        # End previous segment if any
+                        if state['segment_start_time'] is not None and state['segment_leg_side'] is not None:
+                            results["time_series_data"].append({
+                                "start": round(state['segment_start_time'], 2),
+                                "end": round(timestamp, 2),
+                                "leg_side": state['segment_leg_side']
+                            })
+                            results["total_balance_time"] += timestamp - state['segment_start_time']
+                        # Start new segment
+                        state['segment_start_time'] = timestamp
+                        state['segment_leg_side'] = current_leg
+                        state['last_leg_side'] = current_leg
                 else:
                     state['consecutive_foul_frames'] += 1
                     state['consecutive_balance_frames'] = 0
-                    
-                    # Foul detected
-                    if state['balance_start_time'] is not None:
-                        results["total_balance_time"] += timestamp - state['balance_start_time']
-                        state['balance_start_time'] = None
-                    
-                    # Record foul if cooldown has passed and consistent foul detected
+                    # End current segment if any
+                    if state['segment_start_time'] is not None and state['segment_leg_side'] is not None:
+                        results["time_series_data"].append({
+                            "start": round(state['segment_start_time'], 2),
+                            "end": round(timestamp, 2),
+                            "leg_side": state['segment_leg_side']
+                        })
+                        results["total_balance_time"] += timestamp - state['segment_start_time']
+                        state['segment_start_time'] = None
+                        state['segment_leg_side'] = None
+                    # Foul detection (e.g., both feet down, hopping, etc.)
                     if (state['consecutive_foul_frames'] >= 2 and 
                         (state['last_foul_time'] is None or (timestamp - state['last_foul_time']) > state['foul_cooldown'])):
                         foul_data = {
                             "foul_number": len(results["foul_data"]) + 1,
                             "timestamp": round(timestamp, 2),
-                            "frame_number": frame_number
+                            "frame_number": frame_number,
+                            "type": "foot_touch",
+                            "leg_side": state['last_leg_side']
                         }
                         results["foul_data"].append(foul_data)
                         state['last_foul_time'] = timestamp
-                        logger.debug(f"Foul detected at frame {frame_number}")
-    
+                        logger.debug(f"Foul detected at frame {frame_number}, leg: {state['last_leg_side']}")
     try:
         process_video_frames(video_path, process_frame)
-        
-        # Add any remaining balance time
-        if state['balance_start_time'] is not None:
+        # Add any remaining segment
+        if state['segment_start_time'] is not None and state['segment_leg_side'] is not None:
             final_timestamp = results["video_info"]["duration"]
-            results["total_balance_time"] += final_timestamp - state['balance_start_time']
-        
+            results["time_series_data"].append({
+                "start": round(state['segment_start_time'], 2),
+                "end": round(final_timestamp, 2),
+                "leg_side": state['segment_leg_side']
+            })
+            results["total_balance_time"] += final_timestamp - state['segment_start_time']
         results["total_fouls"] = len(results["foul_data"])
         results["total_balance_time"] = round(results["total_balance_time"], 2)
-        
         logger.info(f"Single leg balance analysis complete. Balance time: {results['total_balance_time']:.2f}s, Fouls: {results['total_fouls']}")
         return results
-        
     except Exception as e:
         logger.error(f"Error in single leg balance analysis: {e}")
         raise
+
+def correct_video_orientation(input_path: str, drill_type: str) -> str:
+    """
+    Corrects the orientation and inversion of the input video based on the drill type.
+    Returns the path to the corrected video file in uploads/processed/.
+    Deletes the original input file after correction.
+    Uses moviepy (v2.0.x compatible) for all video writing and rotation.
+    """
+    import shutil
+    import cv2
+    import moviepy
+    from moviepy import VideoFileClip, vfx
+    logger = logging.getLogger(__name__)
+    logger.info(f"[Orientation] Entered correct_video_orientation for {input_path}, drill_type={drill_type}")
+    # Prevent double-processing and double '_corrected' suffix
+    if os.path.basename(input_path).endswith('_corrected.mp4') and os.path.dirname(input_path).endswith('processed'):
+        logger.info(f"[Orientation] File {input_path} is already processed. Returning early.")
+        return input_path
+    landscape_drills = {'pushups', 'situps', 'elbow_plank'}
+    portrait_drills = {'squats', 'chair_hold', 'single_leg_balance_left', 'single_leg_balance_right'}
+    required_landscape = drill_type in landscape_drills
+    required_portrait = drill_type in portrait_drills
+
+    # Prepare processed directory and output path
+    # Store processed videos in a top-level 'processed' folder (sibling to uploads)
+    base_dir = os.path.dirname(os.path.dirname(input_path))
+    processed_dir = os.path.join(base_dir, 'processed')
+    logger.info(f"[Orientation] Ensuring processed_dir exists: {processed_dir}")
+    os.makedirs(processed_dir, exist_ok=True)
+    base_name = os.path.splitext(os.path.basename(input_path))[0]
+    corrected_filename = f"{base_name}_corrected.mp4"
+    corrected_path = os.path.join(processed_dir, corrected_filename)
+    logger.info(f"[Orientation] Will write processed video to: {corrected_path}")
+
+    logger.info(f"[Orientation] Using moviepy 2.0.x to process video: {input_path}")
+    clip = VideoFileClip(input_path)
+    logger.info(f"[DEBUG] VideoFileClip dir: {dir(clip)}")
+    w, h = clip.size
+    rotate_angle = 0
+
+    # Step 3: Initial rotation to required orientation
+    if required_landscape and h > w:
+        rotate_angle = 90
+    elif required_portrait and w > h:
+        rotate_angle = -90
+
+    if rotate_angle != 0:
+        logger.info(f"[Orientation] Rotating video by {rotate_angle} degrees for orientation correction.")
+        clip = clip.rotated(rotate_angle)
+
+    # After rotation, always resize to 1280x720 for landscape drills
+    if required_landscape:
+        logger.info(f"[Orientation] Resizing video to 1280x720 for landscape drill.")
+        clip = clip.resized((1280, 720))
+
+    # (No backend padding for landscape drills)
+
+    # Step 4: Pose-based inversion check (sample multiple frames)
+    import random
+    frame_times = []
+    duration = clip.duration
+    # Sample start, middle, end, and 2 random frames
+    frame_times.extend([0.1, duration / 2, max(0.1, duration - 0.1)])
+    if duration > 2:
+        frame_times.append(random.uniform(0.5, duration - 0.5))
+    if duration > 4:
+        frame_times.append(random.uniform(1, duration - 1))
+
+    pose = get_pose_instance()
+    inverted = False
+    found_landmarks = False
+
+    for t in frame_times:
+        frame = clip.get_frame(t)
+        if frame.dtype != np.uint8:
+            frame = np.clip(frame * 255, 0, 255).astype(np.uint8)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = pose.process(frame_rgb)
+        if results.pose_landmarks:
+            found_landmarks = True
+            lm = results.pose_landmarks.landmark
+            left_shoulder_y = lm[mp_pose.PoseLandmark.LEFT_SHOULDER].y
+            right_shoulder_y = lm[mp_pose.PoseLandmark.RIGHT_SHOULDER].y
+            left_ankle_y = lm[mp_pose.PoseLandmark.LEFT_ANKLE].y
+            right_ankle_y = lm[mp_pose.PoseLandmark.RIGHT_ANKLE].y
+            shoulders_y = (left_shoulder_y + right_shoulder_y) / 2
+            ankles_y = (left_ankle_y + right_ankle_y) / 2
+            if shoulders_y > ankles_y:
+                inverted = True
+            break  # Use the first frame with landmarks
+
+    if not found_landmarks:
+        logger.warning("[Orientation] No pose landmarks found in any sampled frame. Skipping inversion check.")
+
+    if inverted:
+        logger.info(f"[Orientation] Detected inversion, applying 180-degree rotation.")
+        clip = clip.rotated(180)
+
+    # Step 6: Output corrected video using moviepy (H.264, mp4)
+    logger.info(f"[Orientation] Writing final corrected video to: {corrected_path}")
+    try:
+        clip.write_videofile(corrected_path, codec='libx264', audio_codec='aac', fps=clip.fps)
+    except Exception as e:
+        logger.error(f"[Orientation] MoviePy failed to write video: {e}")
+        raise
+    # Ensure the file is closed before deleting the original
+    clip.close()
+    exists = os.path.exists(corrected_path)
+    size = os.path.getsize(corrected_path) if exists else 0
+    logger.info(f"[Orientation] Finished writing corrected video. File exists: {exists} Size: {size} bytes")
+    if not exists:
+        raise RuntimeError(f"[Orientation] Processed video was not written to {corrected_path}. Check MoviePy output and permissions.")
+
+    # Delete the original upload (after closing all handles)
+    if os.path.exists(input_path):
+        try:
+            os.remove(input_path)
+        except Exception as e:
+            logger.error(f"[Orientation] Failed to delete original upload: {e}")
+    logger.info(f"[Orientation] Returning corrected video path: {corrected_path}")
+    return corrected_path
 
 def analyze_video(video_path: str, drill_type: str) -> Dict:
     """Main router function to call the correct analysis function."""
@@ -780,24 +927,26 @@ def analyze_video(video_path: str, drill_type: str) -> Dict:
     if not validate_video_file(video_path):
         raise Exception("Cannot read video file - it may be corrupted or in an unsupported format")
     
+    # --- Orientation Correction Integration ---
+    corrected_path = correct_video_orientation(video_path, drill_type)
     try:
         start_time = time.time()
         
         # Route to appropriate analysis function
         if drill_type == 'pushups':
-            result = analyze_pushups(video_path)
+            result = analyze_pushups(corrected_path)
         elif drill_type == 'squats':
-            result = analyze_squats(video_path)
+            result = analyze_squats(corrected_path)
         elif drill_type == 'situps':
-            result = analyze_situps(video_path)
+            result = analyze_situps(corrected_path)
         elif drill_type == 'chair_hold':
-            result = analyze_chair_hold(video_path)
+            result = analyze_chair_hold(corrected_path)
         elif drill_type == 'elbow_plank':
-            result = analyze_elbow_plank(video_path)
+            result = analyze_elbow_plank(corrected_path)
         elif drill_type == 'single_leg_balance_right':
-            result = analyze_single_leg_balance(video_path, 'right')
+            result = analyze_single_leg_balance(corrected_path)
         elif drill_type == 'single_leg_balance_left':
-            result = analyze_single_leg_balance(video_path, 'left')
+            result = analyze_single_leg_balance(corrected_path)
         else:
             raise Exception(f"Invalid drill type specified: {drill_type}")
         
@@ -805,7 +954,7 @@ def analyze_video(video_path: str, drill_type: str) -> Dict:
         logger.info(f"Analysis completed in {processing_time:.2f} seconds")
         
         return result
-            
-    except Exception as e:
-        logger.error(f"Analysis failed for {drill_type}: {str(e)}")
-        raise Exception(f"Analysis failed: {str(e)}")
+    finally:
+        # Clean up temp file if different from original
+        if corrected_path != video_path and os.path.exists(corrected_path):
+            os.remove(corrected_path)

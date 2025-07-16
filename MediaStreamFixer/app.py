@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from google import genai
 from google.genai import types
-from analysis_module import analyze_video
+from analysis_module import analyze_video, correct_video_orientation
 
 # Set up logging for debugging
 logging.basicConfig(
@@ -206,6 +206,16 @@ def handle_analysis():
                 os.remove(video_path)
             return jsonify({"error": "Video file is empty or corrupted"}), 400
 
+        # --- Orientation Correction Integration ---
+        try:
+            corrected_path = correct_video_orientation(video_path, drill_type)
+            # Store processed video in top-level 'processed' folder
+            processed_dir = os.path.join(os.path.dirname(app.config['UPLOAD_FOLDER']), 'processed')
+            corrected_filename = os.path.relpath(corrected_path, processed_dir)
+        except Exception as e:
+            logger.error(f"Error correcting video orientation: {str(e)}")
+            return jsonify({"error": f"Failed to correct video orientation: {str(e)}"}), 500
+
         # Analyze video with timeout
         try:
             logger.info("Starting video analysis with timeout...")
@@ -214,13 +224,19 @@ def handle_analysis():
             # Initialize result in cache
             analysis_results_cache[result_id] = {'status': 'processing'}
 
-            # Run analysis with timeout
-            analysis_result = analyze_video_with_timeout(video_path, drill_type, result_id, timeout_seconds=180)
+            # Run analysis with timeout using the corrected video
+            analysis_result = analyze_video_with_timeout(corrected_path, drill_type, result_id, timeout_seconds=180)
 
-            # Keep the video file for the results page
-            # Store video path in results for the results page
+            # Store processed video path in results for the results page
             if analysis_result['status'] == 'completed':
-                analysis_result['result']['video_path'] = filename
+                analysis_result['result']['video_path'] = corrected_filename
+                # Save JSON result in the same top-level processed folder
+                json_base = os.path.splitext(os.path.basename(corrected_filename))[0]
+                json_filename = f"{json_base}.json"
+                json_path = os.path.join(processed_dir, json_filename)
+                with open(json_path, 'w', encoding='utf-8') as f:
+                    json.dump(analysis_result['result'], f, ensure_ascii=False, indent=2)
+                analysis_result['result']['json_path'] = json_filename
 
             # Clean up cache
             if result_id in analysis_results_cache:
@@ -238,9 +254,6 @@ def handle_analysis():
 
         except Exception as e:
             logger.error(f"Error during video analysis: {str(e)}", exc_info=True)
-            # Clean up the uploaded file in case of error
-            if os.path.exists(video_path):
-                os.remove(video_path)
             return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
     except Exception as e:
@@ -309,10 +322,20 @@ def handle_chat():
         logger.error(f"Error in chat handler: {str(e)}", exc_info=True)
         return jsonify({"error": f"Chat error: {str(e)}"}), 500
 
-@app.route('/uploads/<filename>')
+@app.route('/uploads/<path:filename>')
 def serve_video(filename):
-    """Serve uploaded video files."""
-    return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    """Serve uploaded and processed video files."""
+    uploads_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    processed_dir = os.path.join(app.root_path, 'processed')
+    # Try processed first, then uploads
+    processed_path = os.path.join(processed_dir, os.path.basename(filename))
+    upload_path = os.path.join(uploads_dir, os.path.basename(filename))
+    if os.path.exists(processed_path):
+        return send_file(processed_path)
+    elif os.path.exists(upload_path):
+        return send_file(upload_path)
+    else:
+        return jsonify({"error": "File not found"}), 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

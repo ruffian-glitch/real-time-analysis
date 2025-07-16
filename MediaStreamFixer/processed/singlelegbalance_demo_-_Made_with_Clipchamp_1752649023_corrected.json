@@ -1,0 +1,118 @@
+{
+  "drill_type": "single_leg_balance",
+  "total_balance_time": 4.87,
+  "total_fouls": 9,
+  "foul_data": [
+    {
+      "foul_number": 1,
+      "timestamp": 1.67,
+      "frame_number": 50,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 2,
+      "timestamp": 3.7,
+      "frame_number": 111,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 3,
+      "timestamp": 5.73,
+      "frame_number": 172,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 4,
+      "timestamp": 7.77,
+      "frame_number": 233,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 5,
+      "timestamp": 10.5,
+      "frame_number": 315,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 6,
+      "timestamp": 12.63,
+      "frame_number": 379,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 7,
+      "timestamp": 14.67,
+      "frame_number": 440,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 8,
+      "timestamp": 16.67,
+      "frame_number": 500,
+      "type": "foot_touch",
+      "leg_side": "right"
+    },
+    {
+      "foul_number": 9,
+      "timestamp": 18.7,
+      "frame_number": 561,
+      "type": "foot_touch",
+      "leg_side": "right"
+    }
+  ],
+  "time_series_data": [
+    {
+      "start": 0.0,
+      "end": 1.63,
+      "leg_side": "right"
+    },
+    {
+      "start": 3.9,
+      "end": 4.2,
+      "leg_side": "right"
+    },
+    {
+      "start": 8.77,
+      "end": 10.47,
+      "leg_side": "right"
+    },
+    {
+      "start": 10.93,
+      "end": 11.23,
+      "leg_side": "right"
+    },
+    {
+      "start": 11.87,
+      "end": 11.93,
+      "leg_side": "right"
+    },
+    {
+      "start": 11.97,
+      "end": 12.07,
+      "leg_side": "right"
+    },
+    {
+      "start": 12.17,
+      "end": 12.6,
+      "leg_side": "right"
+    },
+    {
+      "start": 17.03,
+      "end": 17.37,
+      "leg_side": "right"
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 618,
+    "duration": 20.6
+  },
+  "video_path": "singlelegbalance_demo_-_Made_with_Clipchamp_1752649023_corrected.mp4"
+}

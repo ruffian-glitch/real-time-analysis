@@ -1,0 +1,61 @@
+{
+  "drill_type": "situps",
+  "total_reps": 7,
+  "reps": [
+    {
+      "rep_number": 1,
+      "start_frame": 1,
+      "end_frame": 29,
+      "hip_angle_top": 106.1,
+      "hip_angle_bottom": 106.1
+    },
+    {
+      "rep_number": 2,
+      "start_frame": 141,
+      "end_frame": 223,
+      "hip_angle_top": 103.8,
+      "hip_angle_bottom": 103.8
+    },
+    {
+      "rep_number": 3,
+      "start_frame": 235,
+      "end_frame": 324,
+      "hip_angle_top": 105.9,
+      "hip_angle_bottom": 105.9
+    },
+    {
+      "rep_number": 4,
+      "start_frame": 349,
+      "end_frame": 441,
+      "hip_angle_top": 106.4,
+      "hip_angle_bottom": 106.4
+    },
+    {
+      "rep_number": 5,
+      "start_frame": 467,
+      "end_frame": 499,
+      "hip_angle_top": 107.7,
+      "hip_angle_bottom": 107.7
+    },
+    {
+      "rep_number": 6,
+      "start_frame": 523,
+      "end_frame": 556,
+      "hip_angle_top": 108.8,
+      "hip_angle_bottom": 108.8
+    },
+    {
+      "rep_number": 7,
+      "start_frame": 577,
+      "end_frame": 613,
+      "hip_angle_top": 110.2,
+      "hip_angle_bottom": 110.2
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 624,
+    "duration": 20.8
+  },
+  "video_path": "situps_demo_-_Made_with_Clipchamp_1752639475_corrected.mp4"
+}

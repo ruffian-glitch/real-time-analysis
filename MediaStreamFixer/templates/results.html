@@ -355,6 +355,7 @@
 <body>
     <div id="root"></div>
 
+    {% raw %}
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
@@ -378,63 +379,164 @@
         const VideoPlayer = ({ analysisData, currentSegment, onTimeUpdate }) => {
             const videoRef = useRef(null);
             const [isPlaying, setIsPlaying] = useState(false);
+            const [repCount, setRepCount] = useState(0);
+            const [repStatus, setRepStatus] = useState('Ready');
+            const [holdTime, setHoldTime] = useState(0);
+            const [lastTime, setLastTime] = useState(0);
+
+            // Determine maxWidth based on drill type
+            const getMaxWidth = () => {
+                if (!analysisData) return '900px';
+                switch (analysisData.drill_type) {
+                    case 'pushups':
+                    case 'situps':
+                    case 'elbow_plank':
+                        return '900px'; // landscape drills
+                    case 'squats':
+                    case 'chair_hold':
+                    case 'single_leg_balance_left':
+                    case 'single_leg_balance_right':
+                        return '400px'; // portrait drills
+                    default:
+                        return '600px';
+                }
+            };
+
+            // Determine if drill is landscape
+            const isLandscapeDrill = analysisData && ['pushups', 'situps', 'elbow_plank'].includes(analysisData.drill_type);
 
             useEffect(() => {
                 if (currentSegment && videoRef.current) {
                     const { startTime, endTime } = currentSegment;
                     videoRef.current.currentTime = startTime;
                     videoRef.current.play();
-                    
                     const handleTimeUpdate = () => {
                         if (videoRef.current.currentTime >= endTime) {
                             videoRef.current.pause();
                             setIsPlaying(false);
                         }
                     };
-                    
                     videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
                     return () => videoRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
                 }
             }, [currentSegment]);
 
+            // Real-time rep counter and status logic
+            const handleTimeUpdate = () => {
+                const t = videoRef.current.currentTime;
+                setLastTime(t);
+                let count = 0;
+                let status = 'Up';
+                let repIdx = -1;
+                // Rep-based drills
+                if (analysisData && ['pushups','situps','squats'].includes(analysisData.drill_type) && analysisData.reps) {
+                    for (let i = 0; i < analysisData.reps.length; ++i) {
+                        const rep = analysisData.reps[i];
+                        if (t >= rep.end_frame / analysisData.video_info.fps) count++;
+                        if (t >= rep.start_frame / analysisData.video_info.fps && t <= rep.end_frame / analysisData.video_info.fps) {
+                            repIdx = i;
+                            const mid = (rep.start_frame + rep.end_frame) / 2 / analysisData.video_info.fps;
+                            status = t < mid ? 'Down' : 'Up';
+                        }
+                    }
+                    setRepCount(count);
+                    setRepStatus(repIdx === -1 ? 'Ready' : status);
+                }
+                // Hold-based drills
+                if (analysisData && ['chair_hold','elbow_plank','single_leg_balance_left','single_leg_balance_right'].includes(analysisData.drill_type)) {
+                    let totalHold = 0;
+                    let foundSegment = false;
+                    if (Array.isArray(analysisData.time_series_data) && analysisData.time_series_data.length > 0 && analysisData.time_series_data[0].start !== undefined) {
+                        // Use {start, end} segments
+                        for (const seg of analysisData.time_series_data) {
+                            if (t >= seg.end) {
+                                totalHold += seg.end - seg.start;
+                            } else if (t >= seg.start && t < seg.end) {
+                                totalHold += t - seg.start;
+                                foundSegment = true;
+                                break;
+                            }
+                        }
+                    } else if (Array.isArray(analysisData.valid_hold_periods) && analysisData.valid_hold_periods.length > 0) {
+                        for (const seg of analysisData.valid_hold_periods) {
+                            if (t >= seg.end) {
+                                totalHold += seg.end - seg.start;
+                            } else if (t >= seg.start && t < seg.end) {
+                                totalHold += t - seg.start;
+                                foundSegment = true;
+                                break;
+                            }
+                        }
+                    }
+                    // Fallback: if no segments or t never in a segment, increment from 0 up to total_hold_time as video plays
+                    if ((!foundSegment && totalHold === 0) || (!Array.isArray(analysisData.time_series_data) && !Array.isArray(analysisData.valid_hold_periods))) {
+                        totalHold = 0; // Only start timer when in a valid segment
+                    }
+                    setHoldTime(totalHold);
+                }
+                if (onTimeUpdate) onTimeUpdate();
+            };
+
             const getOverlayContent = () => {
                 if (!analysisData) return '';
-                
+                if (["pushups","situps","squats"].includes(analysisData.drill_type)) {
+                    return (
+                        <>
+                            <div>Rep Count: {repCount}</div>
+                            <div>Status: {repStatus}</div>
+                        </>
+                    );
+                }
+                if (["chair_hold","elbow_plank"].includes(analysisData.drill_type)) {
+                    return (
+                        <div>Hold Time: {holdTime.toFixed(2)}s</div>
+                    );
+                }
+                if (["single_leg_balance","single_leg_balance_left","single_leg_balance_right"].includes(analysisData.drill_type)) {
+                    // Real-time: show hold timer and ankle lifted in overlay for single leg balance only
+                    let currentLeg = null;
+                    let totalHold = 0;
+                    let foundSegment = false;
+                    const t = lastTime;
+                    if (Array.isArray(analysisData.time_series_data)) {
+                        for (const seg of analysisData.time_series_data) {
+                            if (t >= seg.end) {
+                                totalHold += seg.end - seg.start;
+                            } else if (t >= seg.start && t < seg.end) {
+                                totalHold += t - seg.start;
+                                currentLeg = seg.leg_side;
+                                foundSegment = true;
+                                break;
+                            }
+                        }
+                    }
+                    // Only show timer when in a valid segment
+                    if (!foundSegment) totalHold = 0;
+                    return (
+                        <>
+                            <div>Hold Time: {totalHold.toFixed(2)}s</div>
+                            <div>Ankle lifted: {currentLeg ? currentLeg.charAt(0).toUpperCase() + currentLeg.slice(1) : 'None'}</div>
+                        </>
+                    );
+                }
                 switch (analysisData.drill_type) {
-                    case 'squats':
-                    case 'pushups':
-                    case 'situps':
-                        return (
-                            <>
-                                <div>Rep Count: {analysisData.total_reps}</div>
-                                <div>Status: {isPlaying ? 'Playing' : 'Ready'}</div>
-                            </>
-                        );
-                    case 'chair_hold':
-                    case 'elbow_plank':
-                        return <div>Hold Time: {analysisData.total_hold_time}s</div>;
-                    case 'single_leg_balance_left':
-                    case 'single_leg_balance_right':
-                        return (
-                            <>
-                                <div>Lifted Leg: {analysisData.leg_side || 'Right'}</div>
-                                <div>Hold Time: {analysisData.total_balance_time}s</div>
-                            </>
-                        );
                     default:
                         return <div>Analysis Complete</div>;
                 }
             };
 
             return (
-                <div className="video-container">
+                <div className="video-container" style={{ width: '100%', maxWidth: getMaxWidth(), margin: '0 auto' }}>
                     <video
                         ref={videoRef}
                         className="video-player"
+                        style={isLandscapeDrill
+                            ? { width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px', boxShadow: '0 4px 24px 0 #b3c6ff33' }
+                            : { width: '100%', borderRadius: '12px', boxShadow: '0 4px 24px 0 #b3c6ff33' }}
                         controls
                         onPlay={() => setIsPlaying(true)}
                         onPause={() => setIsPlaying(false)}
-                        onTimeUpdate={onTimeUpdate}
+                        onTimeUpdate={handleTimeUpdate}
                     >
                         <source src={`/uploads/${analysisData?.video_path || 'test_video.mp4'}`} type="video/mp4" />
                         Your browser does not support the video tag.
@@ -455,14 +557,15 @@
                     pushups: 0.29,
                     situps: 0.25,
                     chair_hold: 0.1,
-                    elbow_plank: 0.12
+                    elbow_plank: 0.12,
+                    single_leg_balance: 0.08
                 };
                 
                 const genderMultiplier = userInputs.gender === 'male' ? 1.2 : 1.0;
                 const ageMultiplier = userInputs.age > 30 ? 0.95 : 1.0;
                 
                 const reps = analysisData?.total_reps || 0;
-                const duration = analysisData?.total_hold_time || analysisData?.video_info?.duration || 0;
+                const duration = analysisData?.total_hold_time || analysisData?.total_balance_time || analysisData?.video_info?.duration || 0;
                 
                 const calories = (baseCalories[analysisData?.drill_type] || 0.2) * 
                     (reps || duration) * 
@@ -485,13 +588,31 @@
                     : `You're ${Math.abs(improvement)}% below average - keep practicing!`;
             };
 
+            const getMainLeg = () => {
+                if (Array.isArray(analysisData?.time_series_data) && analysisData.time_series_data.length > 0) {
+                    const counts = {};
+                    for (const seg of analysisData.time_series_data) {
+                        counts[seg.leg_side] = (counts[seg.leg_side] || 0) + (seg.end - seg.start);
+                    }
+                    let maxLeg = null, maxTime = 0;
+                    for (const leg in counts) {
+                        if (counts[leg] > maxTime) {
+                            maxLeg = leg;
+                            maxTime = counts[leg];
+                        }
+                    }
+                    return maxLeg ? maxLeg.charAt(0).toUpperCase() + maxLeg.slice(1) : 'None';
+                }
+                return 'None';
+            };
+
             return (
                 <div className="metrics-section">
                     <h2>Performance Metrics</h2>
                     
                     <div className="metrics-grid">
                         <div className="metric-card">
-                            <div className="metric-value">{analysisData?.total_reps || analysisData?.total_hold_time || 0}</div>
+                            <div className="metric-value">{analysisData?.total_reps || analysisData?.total_hold_time || analysisData?.total_balance_time || 0}</div>
                             <div className="metric-label">
                                 {analysisData?.total_reps ? 'Total Reps' : 'Hold Time (s)'}
                             </div>
@@ -508,6 +629,12 @@
                             <div className="metric-value">{analysisData?.video_info?.fps?.toFixed(1) || '30'}</div>
                             <div className="metric-label">FPS</div>
                         </div>
+                        {['single_leg_balance','single_leg_balance_left','single_leg_balance_right'].includes(analysisData?.drill_type) && (
+                            <div className="metric-card">
+                                <div className="metric-value">{getMainLeg()}</div>
+                                <div className="metric-label">Main Ankle Raised</div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="user-inputs">
@@ -847,5 +974,6 @@
 
         ReactDOM.render(<ResultsPage />, document.getElementById('root'));
     </script>
+    {% endraw %}
 </body>
 </html>

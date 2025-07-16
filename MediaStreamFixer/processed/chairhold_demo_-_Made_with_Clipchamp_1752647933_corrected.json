@@ -1,0 +1,20 @@
+{
+  "drill_type": "chair_hold",
+  "total_hold_time": 18.03,
+  "time_series_data": [
+    {
+      "start": 2.73,
+      "end": 3.23
+    },
+    {
+      "start": 3.37,
+      "end": 20.9
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 627,
+    "duration": 20.9
+  },
+  "video_path": "chairhold_demo_-_Made_with_Clipchamp_1752647933_corrected.mp4"
+}

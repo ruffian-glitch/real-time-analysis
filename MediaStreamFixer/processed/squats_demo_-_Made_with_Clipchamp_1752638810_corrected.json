@@ -1,0 +1,117 @@
+{
+  "drill_type": "squats",
+  "total_reps": 15,
+  "reps": [
+    {
+      "rep_number": 1,
+      "start_frame": 35,
+      "end_frame": 64,
+      "min_knee_angle": 83.0,
+      "torso_angle_at_bottom": 175.9
+    },
+    {
+      "rep_number": 2,
+      "start_frame": 76,
+      "end_frame": 106,
+      "min_knee_angle": 73.4,
+      "torso_angle_at_bottom": 176.0
+    },
+    {
+      "rep_number": 3,
+      "start_frame": 116,
+      "end_frame": 144,
+      "min_knee_angle": 74.7,
+      "torso_angle_at_bottom": 179.3
+    },
+    {
+      "rep_number": 4,
+      "start_frame": 155,
+      "end_frame": 183,
+      "min_knee_angle": 72.6,
+      "torso_angle_at_bottom": 178.5
+    },
+    {
+      "rep_number": 5,
+      "start_frame": 193,
+      "end_frame": 222,
+      "min_knee_angle": 73.2,
+      "torso_angle_at_bottom": 178.0
+    },
+    {
+      "rep_number": 6,
+      "start_frame": 232,
+      "end_frame": 260,
+      "min_knee_angle": 71.4,
+      "torso_angle_at_bottom": 179.2
+    },
+    {
+      "rep_number": 7,
+      "start_frame": 270,
+      "end_frame": 298,
+      "min_knee_angle": 72.9,
+      "torso_angle_at_bottom": 178.5
+    },
+    {
+      "rep_number": 8,
+      "start_frame": 308,
+      "end_frame": 335,
+      "min_knee_angle": 72.3,
+      "torso_angle_at_bottom": 177.4
+    },
+    {
+      "rep_number": 9,
+      "start_frame": 347,
+      "end_frame": 374,
+      "min_knee_angle": 71.5,
+      "torso_angle_at_bottom": 178.9
+    },
+    {
+      "rep_number": 10,
+      "start_frame": 385,
+      "end_frame": 414,
+      "min_knee_angle": 68.8,
+      "torso_angle_at_bottom": 179.6
+    },
+    {
+      "rep_number": 11,
+      "start_frame": 425,
+      "end_frame": 451,
+      "min_knee_angle": 70.3,
+      "torso_angle_at_bottom": 178.9
+    },
+    {
+      "rep_number": 12,
+      "start_frame": 462,
+      "end_frame": 490,
+      "min_knee_angle": 69.6,
+      "torso_angle_at_bottom": 178.7
+    },
+    {
+      "rep_number": 13,
+      "start_frame": 499,
+      "end_frame": 526,
+      "min_knee_angle": 69.6,
+      "torso_angle_at_bottom": 176.1
+    },
+    {
+      "rep_number": 14,
+      "start_frame": 537,
+      "end_frame": 564,
+      "min_knee_angle": 73.0,
+      "torso_angle_at_bottom": 178.0
+    },
+    {
+      "rep_number": 15,
+      "start_frame": 574,
+      "end_frame": 602,
+      "min_knee_angle": 71.7,
+      "torso_angle_at_bottom": 177.9
+    }
+  ],
+  "video_info": {
+    "fps": 30.0,
+    "total_frames": 618,
+    "duration": 20.6
+  },
+  "video_path": "squats_demo_-_Made_with_Clipchamp_1752638810_corrected.mp4"
+}
