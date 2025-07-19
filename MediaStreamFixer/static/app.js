@@ -1,3 +1,4 @@
+// Only declare analysisData once at the top
 let analysisData = null;
 let processingStartTime = null;
 
@@ -5,13 +6,37 @@ let selectedDrill = null;
 let selectedFile = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // All code that references DOM elements should be inside here
     const uploadForm = document.getElementById('upload-form');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', handleVideoUpload);
+    }
     const sendChatBtn = document.getElementById('send-chat');
+    if (sendChatBtn) {
+        sendChatBtn.addEventListener('click', sendChatMessage);
+    }
     const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
     const videoFileInput = document.getElementById('video-file');
+    if (videoFileInput) {
+        videoFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showFileSelected(file);
+                updateAnalyzeButton();
+            }
+        });
+    }
     const drillOptions = document.querySelectorAll('.drill-option');
-
-    // Setup drill selection
+    if (drillOptions && drillOptions.length > 0) {
     drillOptions.forEach(option => {
         option.addEventListener('click', function() {
             // Remove selected class from all options
@@ -22,28 +47,17 @@ document.addEventListener('DOMContentLoaded', function() {
             updateAnalyzeButton();
         });
     });
-
-    // Setup file input
-    videoFileInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-            selectedFile = file;
-            showFileSelected(file);
-            updateAnalyzeButton();
-        }
-    });
-
-    uploadForm.addEventListener('submit', handleVideoUpload);
-    sendChatBtn.addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendChatMessage();
-        }
-    });
-
+    }
     // Health check on page load
     checkServerHealth();
+    // Add event listeners for new fields to update the Analyze button
+    ['age','gender','weight'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updateAnalyzeButton);
+            el.addEventListener('change', updateAnalyzeButton);
+        }
+    });
 });
 
 function showFileSelected(file) {
@@ -60,7 +74,10 @@ function showFileSelected(file) {
 
 function updateAnalyzeButton() {
     const analyzeBtn = document.getElementById('analyze-btn');
-    if (selectedDrill && selectedFile) {
+    const age = document.getElementById('age')?.value;
+    const gender = document.getElementById('gender')?.value;
+    const weight = document.getElementById('weight')?.value;
+    if (selectedDrill && selectedFile && age && gender && weight) {
         analyzeBtn.disabled = false;
     } else {
         analyzeBtn.disabled = true;
@@ -79,41 +96,40 @@ async function checkServerHealth() {
 
 async function handleVideoUpload(e) {
     e.preventDefault();
-    
-    if (!selectedDrill || !selectedFile) {
-        showError('Please select a drill type and upload a video file.');
+
+    const age = document.getElementById('age')?.value;
+    const gender = document.getElementById('gender')?.value;
+    const weight = document.getElementById('weight')?.value;
+
+    if (!selectedDrill || !selectedFile || !age || !gender || !weight) {
+        showError('Please select a drill type, upload a video file, and enter your age, gender, and weight.');
         return;
     }
-    
+
     const formData = new FormData();
     formData.append('drill_type', selectedDrill);
     formData.append('video', selectedFile);
-    
-    console.log('Upload started:', { 
-        drillType: selectedDrill, 
-        fileName: selectedFile.name, 
-        fileSize: selectedFile.size,
-        fileType: selectedFile.type 
-    });
-    
+    formData.append('age', age);
+    formData.append('weight', weight);
+    formData.append('gender', gender);
+
     // Validate file size (100MB limit)
     if (selectedFile.size > 100 * 1024 * 1024) {
         showError('Video file is too large. Maximum size is 100MB.');
         return;
     }
-    
+
     // Validate file type
     const allowedTypes = [
-        'video/mp4', 'video/avi', 'video/mov', 'video/quicktime', 
-        'video/x-msvideo', 'video/x-matroska', 'video/x-ms-wmv', 
+        'video/mp4', 'video/avi', 'video/mov', 'video/quicktime',
+        'video/x-msvideo', 'video/x-matroska', 'video/x-ms-wmv',
         'video/x-flv', 'video/webm', 'video/mp4v-es', 'video/3gpp'
     ];
-    
     if (!allowedTypes.includes(selectedFile.type) && !selectedFile.name.toLowerCase().match(/\.(mp4|avi|mov|mkv|wmv|flv|webm|m4v|3gp)$/)) {
         showError('Invalid file type. Please upload a video file (MP4, AVI, MOV, MKV, WMV, FLV, WEBM, M4V, 3GP).');
         return;
     }
-    
+
     // Check if file is actually a video by trying to create a video element
     try {
         await validateVideoFile(selectedFile);
@@ -121,49 +137,28 @@ async function handleVideoUpload(e) {
         showError('Invalid video file. Please ensure the file is a valid video.');
         return;
     }
-    
+
+    // Show processing screen immediately
     showProcessing();
-    
-    const startTime = Date.now();
-    
+
     try {
-        console.log('Sending request to /api/analyze');
-        
         const response = await fetch('/api/analyze', {
             method: 'POST',
             body: formData
         });
-        
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-        
+
         const result = await response.json();
-        console.log('Response data:', result);
-        
-        const processingTime = (Date.now() - startTime) / 1000;
-        console.log(`Processing completed in ${processingTime.toFixed(2)} seconds`);
-        
-        if (response.ok) {
-            // NEW: Redirect to /results if redirect_url is present
-            if (result.redirect_url) {
-                window.location.href = result.redirect_url;
-            } else {
-                analysisData = result;
-                showResults(result);
-            }
+
+        if (response.ok && result.redirect_url) {
+            window.location.href = result.redirect_url;
+        } else if (response.ok) {
+            analysisData = result;
+            showResults(result);
         } else {
             showError(result.error || 'Analysis failed. Please try again.');
         }
     } catch (error) {
-        console.error('Error:', error);
-        const processingTime = (Date.now() - startTime) / 1000;
-        console.log(`Processing failed after ${processingTime.toFixed(2)} seconds`);
-        
-        if (error.name === 'AbortError') {
-            showError('Request timed out. Please try with a shorter video or try again.');
-        } else {
-            showError('Network error. Please check your connection and try again.');
-        }
+        showError('Network error. Please check your connection and try again.');
     }
 }
 
@@ -196,9 +191,15 @@ async function sendChatMessage() {
     
     console.log('Sending chat message:', message);
     
+    // Store the user question for later reference
+    const userQuestion = message.toLowerCase();
+    
     // Add user message to chat
     addChatMessage(message, 'user');
     chatInput.value = '';
+    
+    // Scroll to bottom after adding user message
+    scrollChatToBottom();
     
     // Disable input while processing
     chatInput.disabled = true;
@@ -206,6 +207,7 @@ async function sendChatMessage() {
     
     // Show typing indicator
     const typingId = addChatMessage('AI is analyzing your question...', 'ai', true);
+    scrollChatToBottom();
     
     try {
         const response = await fetch('/api/chat', {
@@ -230,14 +232,66 @@ async function sendChatMessage() {
         
         if (response.ok) {
             addChatMessage(result.response || result.text_response, 'ai');
-            
-            // Handle any actions
+            // Scroll to bottom after adding AI response
+            scrollChatToBottom();
+            // Handle any actions - only play video if explicitly requested
             if (result.action && result.action.type === 'play_segment') {
-                const actionMessage = `📹 Video segment reference: Frame ${result.action.start_frame} to ${result.action.end_frame}`;
-                addChatMessage(actionMessage, 'system');
+                // Check if user actually asked for video demonstration
+                const videoKeywords = [
+                    'show', 'display', 'play', 'watch', 'see', 'view', 'demonstrate',
+                    'where', 'when', 'at what time', 'at what point', 'during which',
+                    'highlight', 'point out', 'mark', 'indicate', 'locate',
+                    'video', 'clip', 'segment', 'moment', 'instance', 'frame',
+                    'timeline', 'timestamp', 'timecode', 'position', 'spot',
+                    'visual', 'visually', 'appears', 'looks like', 'can see',
+                    'observe', 'notice', 'spot', 'identify', 'find'
+                ];
+                
+                const wantsVideo = videoKeywords.some(keyword => userQuestion.includes(keyword));
+                
+                if (wantsVideo) {
+                    const actionMessage = `📹 Video segment reference: ` +
+                        (result.action.start_time !== undefined && result.action.end_time !== undefined
+                            ? `Time ${result.action.start_time.toFixed(2)}s to ${result.action.end_time.toFixed(2)}s`
+                            : result.action.start_frame !== undefined && result.action.end_frame !== undefined
+                            ? `Frame ${result.action.start_frame} to ${result.action.end_frame}`
+                            : '');
+                    addChatMessage(actionMessage, 'system');
+                    scrollChatToBottom();
+                    // --- Video seek/play logic ---
+                    const videoElem = document.querySelector('#chat-video-container video');
+                    if (videoElem && result.action.start_time !== undefined) {
+                        videoElem.currentTime = result.action.start_time;
+                        videoElem.play();
+                        // Remove any previous pause handler
+                        if (videoElem._pauseHandler) {
+                            videoElem.removeEventListener('timeupdate', videoElem._pauseHandler);
+                        }
+                        if (result.action.end_time !== undefined) {
+                            videoElem._pauseHandler = function() {
+                                if (videoElem.currentTime >= result.action.end_time) {
+                                    videoElem.pause();
+                                    videoElem.removeEventListener('timeupdate', videoElem._pauseHandler);
+                                }
+                            };
+                            videoElem.addEventListener('timeupdate', videoElem._pauseHandler);
+                        }
+                    }
+                } else {
+                    // User didn't ask for video, just show the reference without playing
+                    const actionMessage = `📹 Reference: ` +
+                        (result.action.start_time !== undefined && result.action.end_time !== undefined
+                            ? `Time ${result.action.start_time.toFixed(2)}s to ${result.action.end_time.toFixed(2)}s`
+                            : result.action.start_frame !== undefined && result.action.end_frame !== undefined
+                            ? `Frame ${result.action.start_frame} to ${result.action.end_frame}`
+                            : '');
+                    addChatMessage(actionMessage, 'system');
+                    scrollChatToBottom();
+                }
             }
         } else {
             addChatMessage(result.error || 'Sorry, I encountered an error. Please try again.', 'ai');
+            scrollChatToBottom();
         }
     } catch (error) {
         console.error('Chat error:', error);
@@ -246,6 +300,7 @@ async function sendChatMessage() {
             typingElement.remove();
         }
         addChatMessage('Sorry, I encountered a network error. Please try again.', 'ai');
+        scrollChatToBottom();
     } finally {
         // Re-enable input
         chatInput.disabled = false;
@@ -284,9 +339,39 @@ function addChatMessage(message, sender, isTyping = false) {
     }
     
     chatMessages.appendChild(messageDiv);
+    
+    // Immediate scroll to ensure message is visible
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
     return messageId;
+}
+
+function scrollChatToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
+    if (chatMessages) {
+        console.log('Scrolling chat to bottom, current scrollHeight:', chatMessages.scrollHeight);
+        
+        // Use smooth scrolling for better UX
+        chatMessages.scrollTo({
+            top: chatMessages.scrollHeight,
+            behavior: 'smooth'
+        });
+        
+        // Fallback for older browsers or if smooth scrolling fails
+        setTimeout(() => {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }, 100);
+        
+        // Ensure chat input is focused after scrolling
+        setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput && !chatInput.disabled) {
+                chatInput.focus();
+            }
+        }, 300);
+    } else {
+        console.error('Chat messages container not found');
+    }
 }
 
 function showProcessing() {
@@ -344,32 +429,14 @@ function showError(message) {
 }
 
 function resetForm() {
-    // Clear progress interval
-    if (window.processingInterval) {
-        clearInterval(window.processingInterval);
-        window.processingInterval = null;
-    }
-    
-    // Reset form state
-    selectedDrill = null;
-    selectedFile = null;
-    analysisData = null;
-    
-    // Reset UI
-    document.querySelectorAll('.drill-option').forEach(option => {
-        option.classList.remove('selected');
-    });
-    
-    document.getElementById('upload-placeholder').classList.remove('d-none');
-    document.getElementById('file-selected').classList.add('d-none');
-    document.getElementById('video-file').value = '';
-    document.getElementById('analyze-btn').disabled = true;
-    
-    // Show upload section
+    console.log('Resetting form');
+    document.getElementById('upload-form').reset();
     document.getElementById('upload-section').classList.remove('d-none');
     document.getElementById('processing-section').classList.add('d-none');
     document.getElementById('error-section').classList.add('d-none');
     document.getElementById('results-section').classList.add('d-none');
+    analysisData = null;
+    processingStartTime = null;
 }
 
 function showErrorDetails() {
@@ -405,6 +472,98 @@ function showResults(data) {
     const processingTime = processingStartTime ? ((Date.now() - processingStartTime.getTime()) / 1000).toFixed(1) : 'unknown';
     
     addChatMessage(`Great! I've analyzed your ${drillName} video in ${processingTime} seconds. Ask me anything about your performance!`, 'ai');
+    scrollChatToBottom();
+
+    // --- Set up main video player ---
+    const mainVideoContainer = document.getElementById('main-video-container');
+    if (mainVideoContainer) {
+        mainVideoContainer.innerHTML = '';
+        
+        // Determine video orientation for main player
+        const landscapeDrills = ['pushups', 'elbow_plank', 'situps'];
+        const portraitDrills = ['squats', 'chair_hold', 'single_leg_balance', 'single_leg_balance_left', 'single_leg_balance_right'];
+        const drillType = (data.drill_type || '').toLowerCase();
+        
+        // Main video should be larger
+        let width = '640px', height = '360px';
+        if (portraitDrills.includes(drillType)) {
+            width = '400px';
+            height = '640px';
+        }
+        
+        // Build video URL for main player
+        let videoPath = data.video_path;
+        if (videoPath) {
+            // If videoPath is a full URL, use as is; otherwise, prefix with /processed/
+            let videoUrl = videoPath.startsWith('http') ? videoPath : `/processed/${videoPath}`;
+            console.log('Setting up main video with URL:', videoUrl);
+            
+            const videoElem = document.createElement('video');
+            videoElem.src = videoUrl;
+            videoElem.controls = true;
+            videoElem.style.width = width;
+            videoElem.style.height = height;
+            videoElem.style.borderRadius = '16px';
+            videoElem.style.background = '#000';
+            videoElem.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+            videoElem.style.maxWidth = '100%';
+            videoElem.style.maxHeight = '70vh';
+            videoElem.id = 'main-video-player';
+            
+            // Add error handling
+            videoElem.onerror = function() {
+                console.error('Failed to load main video:', videoUrl);
+                mainVideoContainer.innerHTML = '<div class="alert alert-warning">Failed to load video. Please try again.</div>';
+            };
+            
+            mainVideoContainer.appendChild(videoElem);
+        } else {
+            console.error('No video path found in analysis data:', data);
+            mainVideoContainer.innerHTML = '<div class="alert alert-warning">Processed video not available.</div>';
+        }
+    }
+
+    // --- Add video player to chat/results right side (smaller version) ---
+    // Find the chat column (col-md-6) and add a container for the video if not present
+    const chatCol = document.querySelector('#results-section .col-md-6:last-child .p-4');
+    if (chatCol) {
+        let videoContainer = document.getElementById('chat-video-container');
+        if (!videoContainer) {
+            videoContainer = document.createElement('div');
+            videoContainer.id = 'chat-video-container';
+            videoContainer.style.display = 'flex';
+            videoContainer.style.justifyContent = 'center';
+            videoContainer.style.alignItems = 'flex-start';
+            videoContainer.style.marginBottom = '1.5rem';
+            chatCol.insertBefore(videoContainer, chatCol.firstChild);
+        }
+        videoContainer.innerHTML = '';
+        
+        // Smaller video for chat section
+        let width = '320px', height = '180px';
+        if (portraitDrills.includes(drillType)) {
+            width = '200px';
+            height = '320px';
+        }
+        
+        // Build video URL for chat video
+        if (videoPath) {
+            let videoUrl = videoPath.startsWith('http') ? videoPath : `/processed/${videoPath}`;
+            const videoElem = document.createElement('video');
+            videoElem.src = videoUrl;
+            videoElem.controls = true;
+            videoElem.style.width = width;
+            videoElem.style.height = height;
+            videoElem.style.borderRadius = '12px';
+            videoElem.style.background = '#000';
+            videoElem.style.boxShadow = '0 2px 12px rgba(0,0,0,0.1)';
+            videoElem.style.marginBottom = '1rem';
+            videoElem.id = 'chat-video-player';
+            videoContainer.appendChild(videoElem);
+        } else {
+            videoContainer.innerHTML = '<div class="alert alert-warning">Processed video not available.</div>';
+        }
+    }
 }
 
 function displayAnalysisResults(data) {
@@ -538,74 +697,10 @@ function displayAnalysisResults(data) {
     
     detailedDiv.innerHTML = detailedHtml;
 
-    // --- Add real-time overlay setup after video is rendered ---
-    setTimeout(() => {
-        const videoElem = document.querySelector('#results-section video');
-        if (videoElem && data && data.reps) {
-            console.log('[DEBUG] Calling setupRealTimeOverlay', { videoElem, data });
-            setupRealTimeOverlay(videoElem, data);
-        } else {
-            console.log('[DEBUG] Video element or reps not found', { videoElem, data });
-        }
-    }, 500);
+
 }
 
-function setupRealTimeOverlay(videoElem, analysisData) {
-    console.log('[DEBUG] setupRealTimeOverlay called', { videoElem, analysisData });
-    // Remove any existing overlay
-    let overlayDiv = document.getElementById('realtime-metrics-overlay');
-    if (overlayDiv) overlayDiv.remove();
-    // Create overlay
-    overlayDiv = document.createElement('div');
-    overlayDiv.id = 'realtime-metrics-overlay';
-    overlayDiv.style.position = 'absolute';
-    overlayDiv.style.left = '0';
-    overlayDiv.style.top = '0';
-    overlayDiv.style.zIndex = '10';
-    overlayDiv.style.pointerEvents = 'none';
-    overlayDiv.style.padding = '16px';
-    overlayDiv.style.fontSize = '1.1em';
-    overlayDiv.style.fontWeight = 'bold';
-    overlayDiv.style.color = '#fff';
-    overlayDiv.style.textShadow = '0 2px 8px #000a';
-    overlayDiv.innerHTML = '';
-    // Position overlay parent
-    const parent = videoElem.parentElement;
-    parent.style.position = 'relative';
-    parent.appendChild(overlayDiv);
 
-    function updateOverlay() {
-        const t = videoElem.currentTime;
-        console.log('[DEBUG] updateOverlay', { t, reps: analysisData.reps });
-        let repCount = 0;
-        let status = 'Up';
-        let repIdx = -1;
-        const drill = (analysisData.drill_type || '').toLowerCase();
-        if (["pushups","situps","squats"].includes(drill) && analysisData.reps && analysisData.reps.length > 0) {
-            for (let i = 0; i < analysisData.reps.length; ++i) {
-                const rep = analysisData.reps[i];
-                if (t >= rep.end_time) {
-                    repCount++;
-                }
-                if (t >= rep.start_time && t <= rep.end_time) {
-                    repIdx = i;
-                    const mid = (rep.start_time + rep.end_time) / 2;
-                    status = t < mid ? 'Down' : 'Up';
-                }
-            }
-            overlayDiv.innerHTML = `<div style="background: rgba(0,0,0,0.7); border-radius: 12px; padding: 12px 20px; min-width: 120px; box-shadow: 0 2px 8px #000a; display: inline-block;">
-                <div>Rep Count: <b>${repCount}</b></div>
-                <div>Status: <b>${status}</b></div>
-            </div>`;
-        } else {
-            overlayDiv.innerHTML = '';
-        }
-    }
-    videoElem.addEventListener('timeupdate', updateOverlay);
-    videoElem.addEventListener('seeked', updateOverlay);
-    videoElem.addEventListener('loadeddata', updateOverlay);
-    updateOverlay();
-}
 
 function resetForm() {
     console.log('Resetting form');
@@ -617,3 +712,25 @@ function resetForm() {
     analysisData = null;
     processingStartTime = null;
 }
+
+// Add this function to update backend JSON after user input/metrics change
+async function updateMetricsOnBackend({ filename, age, weight, gender, caloriesSession, caloriesHour, comparisonScore }) {
+    try {
+        await fetch('/api/update_metrics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filename,
+                age,
+                weight_kg: weight,
+                gender,
+                calories_burned_session: caloriesSession,
+                calories_per_hour: caloriesHour,
+                comparison_score: comparisonScore
+            })
+        });
+    } catch (err) {
+        console.error('Failed to update backend metrics:', err);
+    }
+}
+window.updateMetricsOnBackend = updateMetricsOnBackend;

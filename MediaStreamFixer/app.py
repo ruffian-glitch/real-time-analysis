@@ -3,7 +3,7 @@ import json
 import logging
 import time
 import threading
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, Response, stream_with_context
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 from google import genai
@@ -29,6 +29,10 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Create processed directory
+processed_dir = os.path.join(os.path.dirname(app.config['UPLOAD_FOLDER']), 'processed')
+os.makedirs(processed_dir, exist_ok=True)
 
 # Configure Gemini API
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'default-key')
@@ -65,12 +69,12 @@ def allowed_file(filename):
 # Global dictionary to store analysis results temporarily
 analysis_results_cache = {}
 
-def analyze_video_with_timeout(video_path, drill_type, result_id, timeout_seconds=180):
+def analyze_video_with_timeout(video_path, drill_type, result_id, timeout_seconds=180, age=None, weight_kg=None, gender=None):
     """Run video analysis with timeout in a separate thread."""
     def target():
         try:
             logger.info(f"Starting analysis for {drill_type} on {video_path}")
-            result = analyze_video(video_path, drill_type)
+            result = analyze_video(video_path, drill_type, age=age, weight_kg=weight_kg, gender=gender)
             analysis_results_cache[result_id] = {'status': 'completed', 'result': result}
             logger.info(f"Analysis completed for {result_id}")
         except Exception as e:
@@ -98,6 +102,22 @@ def index():
 @app.route('/results')
 def results():
     return render_template('results.html')
+
+@app.route('/api/analysis/<filename>')
+def get_analysis_data(filename):
+    """Get analysis data by filename."""
+    try:
+        json_path = os.path.join(processed_dir, filename)
+        if not os.path.exists(json_path):
+            return jsonify({"error": "Analysis data not found"}), 404
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return jsonify(data)
+    except Exception as e:
+        logger.error(f"Error loading analysis data: {str(e)}")
+        return jsonify({"error": "Failed to load analysis data"}), 500
 
 @app.route('/settings')
 def settings():
@@ -157,6 +177,9 @@ def handle_analysis():
 
         video_file = request.files['video']
         drill_type = request.form.get('drill_type')
+        age = request.form.get('age', type=int)
+        weight = request.form.get('weight', type=float)
+        gender = request.form.get('gender', type=str)
 
         logger.info(f"Received drill_type: {drill_type}")
         logger.info(f"Received video file: {video_file.filename}")
@@ -210,7 +233,6 @@ def handle_analysis():
         try:
             corrected_path = correct_video_orientation(video_path, drill_type)
             # Store processed video in top-level 'processed' folder
-            processed_dir = os.path.join(os.path.dirname(app.config['UPLOAD_FOLDER']), 'processed')
             corrected_filename = os.path.relpath(corrected_path, processed_dir)
         except Exception as e:
             logger.error(f"Error correcting video orientation: {str(e)}")
@@ -225,7 +247,7 @@ def handle_analysis():
             analysis_results_cache[result_id] = {'status': 'processing'}
 
             # Run analysis with timeout using the corrected video
-            analysis_result = analyze_video_with_timeout(corrected_path, drill_type, result_id, timeout_seconds=180)
+            analysis_result = analyze_video_with_timeout(corrected_path, drill_type, result_id, timeout_seconds=180, age=age, weight_kg=weight, gender=gender)
 
             # Store processed video path in results for the results page
             if analysis_result['status'] == 'completed':
@@ -245,8 +267,8 @@ def handle_analysis():
             if analysis_result['status'] == 'completed':
                 logger.info("Video analysis completed successfully")
                 result = analysis_result['result']
-                # Add redirect URL to the response
-                result['redirect_url'] = f"/results?data={json.dumps(result)}"
+                # Use a simple ID-based redirect instead of passing all data in URL
+                result['redirect_url'] = f"/results?id={json_filename}"
                 return jsonify(result)
             else:
                 logger.error(f"Analysis failed: {analysis_result.get('error', 'Unknown error')}")
@@ -283,8 +305,69 @@ def handle_chat():
 
         logger.info(f"Processing chat question: {user_question}")
 
-        # Construct the prompt for the Gemini API (RAG)
-        prompt = f"""You are an expert AI fitness coach. Your task is to answer the user's question based on the performance data provided.
+        # Enhanced prompt with specific guidance for new metrics
+        drill_type = analysis_json.get('drill_type', '')
+        
+        if drill_type == 'pushups':
+            # Dictionary of video-related keywords that should trigger video playback
+            video_keywords = {
+                'show', 'display', 'play', 'watch', 'see', 'view', 'demonstrate',
+                'where', 'when', 'at what time', 'at what point', 'during which',
+                'highlight', 'point out', 'mark', 'indicate', 'locate',
+                'video', 'clip', 'segment', 'moment', 'instance', 'frame',
+                'timeline', 'timestamp', 'timecode', 'position', 'spot',
+                'visual', 'visually', 'appears', 'looks like', 'can see',
+                'observe', 'notice', 'spot', 'identify', 'find'
+            }
+            
+            # Check if user is asking for video demonstration
+            user_words = set(user_question.lower().split())
+            wants_video = any(keyword in user_words for keyword in video_keywords)
+            
+            prompt = f"""You are an expert AI fitness coach specializing in pushup analysis. Answer the user's question based on the comprehensive performance data provided.
+
+**Performance Data:**
+```json
+{json.dumps(analysis_json, indent=2)}
+```
+
+**Available Pushup Metrics:**
+- **Cadence**: {analysis_json.get('cadence_rpm', 'N/A')} reps per minute
+- **Phase Timing**: Upward: {analysis_json.get('avg_upward_duration', 'N/A')}s, Downward: {analysis_json.get('avg_downward_duration', 'N/A')}s
+- **Head/Neck**: {analysis_json.get('head_neck_alignment', {}).get('avg_angle', 'N/A')}° (deviation: {analysis_json.get('head_neck_alignment', {}).get('deviation_from_neutral', 'N/A')}°)
+- **Movement Consistency**: {analysis_json.get('marker_path_consistency', {}).get('consistency_score', 'N/A')}/100
+- **Rep Details**: Each rep includes phase breakdowns and timing data
+
+**User Question:** {user_question}
+
+**Video Keywords Detected:** {'Yes' if wants_video else 'No'} - User {'is' if wants_video else 'is NOT'} asking for video demonstration
+
+**CRITICAL:** If Video Keywords Detected = No, DO NOT mention any video timestamps, video segments, or "you can review this in the video" in your response. Provide data analysis only.
+
+**Instructions:**
+- Start with a motivational line like a real coach would
+- Keep response to 4-5 lines maximum
+- Focus on 1-2 key insights from the data
+- Be specific and actionable with concrete numbers when available
+- Use encouraging but direct coaching language
+- For consistency questions, mention the actual consistency score (0-100)
+- For phase timing questions, provide both upward and downward durations
+- For head position questions, mention the angle and deviation from neutral
+- For cadence questions, provide the exact reps per minute
+- For detailed rep analysis, break down the phases with timing
+
+**IMPORTANT - Video Playback Rules:**
+- ONLY suggest video playback if user explicitly asks to see/watch/show something in the video
+- Video keywords include: show, display, play, watch, see, view, demonstrate, where, when, highlight, point out, video, clip, segment, moment, instance, frame, timeline, timestamp, timecode, position, spot, visual, visually, appears, looks like, can see, observe, notice, spot, identify, find
+- If user asks for data analysis only (no video keywords), provide text-only response with numbers and insights
+- If user asks for video demonstration, include specific timestamps and rep numbers for reference
+- NEVER mention video timestamps or "you can review this in the video" unless user explicitly asks for video
+- For data questions (cadence, consistency, head position, etc.), provide numbers and analysis only
+- Only mention video segments when user uses video-related keywords
+
+**Answer:**"""
+        else:
+            prompt = f"""You are an expert AI fitness coach. Your task is to answer the user's question based on the performance data provided.
 
 **Performance Data:**
 ```json
@@ -305,37 +388,113 @@ def handle_chat():
 
         logger.info(f"Sending prompt to Gemini API")
 
-        # Send request to Gemini API
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
 
-        if response.text:
-            logger.info("Received response from Gemini API")
-            return jsonify({"response": response.text})
-        else:
-            logger.error("Empty response from Gemini API")
-            return jsonify({"error": "No response from AI service"}), 500
+        def generate_stream():
+            if response.text:
+                # Simulate streaming by yielding one word at a time
+                for word in response.text.split():
+                    yield word + ' '
+                    time.sleep(0.03)  # Simulate typing delay
+            else:
+                yield "[No response from AI service]"
+
+        return Response(stream_with_context(generate_stream()), mimetype='text/plain')
 
     except Exception as e:
         logger.error(f"Error in chat handler: {str(e)}", exc_info=True)
         return jsonify({"error": f"Chat error: {str(e)}"}), 500
 
+@app.route('/api/update_metrics', methods=['POST'])
+def update_metrics():
+    try:
+        data = request.get_json()
+        filename = data.get('filename')
+        if not filename:
+            return jsonify({'error': 'Missing filename'}), 400
+        json_path = os.path.join('processed', filename)
+        if not os.path.exists(json_path):
+            return jsonify({'error': 'File not found'}), 404
+        # Load existing JSON
+        with open(json_path, 'r') as f:
+            analysis_data = json.load(f)
+        # Update fields if present in request
+        for key in ['age', 'weight_kg', 'gender', 'calories_burned_session', 'calories_per_hour', 'comparison_score', 'power_per_rep', 'total_power_output']:
+            if key in data:
+                analysis_data[key] = data[key]
+        # Save updated JSON
+        with open(json_path, 'w') as f:
+            json.dump(analysis_data, f, indent=2)
+        return jsonify(analysis_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/health')
+def health_check():
+    return jsonify({"status": "ok"})
+
+@app.route('/api/debug/videos')
+def debug_videos():
+    """Debug endpoint to check video files."""
+    try:
+        processed_files = []
+        if os.path.exists(processed_dir):
+            for file in os.listdir(processed_dir):
+                file_path = os.path.join(processed_dir, file)
+                if os.path.isfile(file_path):
+                    processed_files.append({
+                        'name': file,
+                        'size': os.path.getsize(file_path),
+                        'path': file_path
+                    })
+        
+        upload_files = []
+        if os.path.exists(app.config['UPLOAD_FOLDER']):
+            for file in os.listdir(app.config['UPLOAD_FOLDER']):
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], file)
+                if os.path.isfile(file_path):
+                    upload_files.append({
+                        'name': file,
+                        'size': os.path.getsize(file_path),
+                        'path': file_path
+                    })
+        
+        return jsonify({
+            'processed_dir': processed_dir,
+            'processed_files': processed_files,
+            'upload_dir': app.config['UPLOAD_FOLDER'],
+            'upload_files': upload_files
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/uploads/<path:filename>')
 def serve_video(filename):
-    """Serve uploaded and processed video files."""
-    uploads_dir = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-    processed_dir = os.path.join(app.root_path, 'processed')
-    # Try processed first, then uploads
-    processed_path = os.path.join(processed_dir, os.path.basename(filename))
-    upload_path = os.path.join(uploads_dir, os.path.basename(filename))
-    if os.path.exists(processed_path):
-        return send_file(processed_path)
-    elif os.path.exists(upload_path):
-        return send_file(upload_path)
-    else:
+    """Serve uploaded video files."""
+    try:
+        return send_file(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    except FileNotFoundError:
         return jsonify({"error": "File not found"}), 404
+
+@app.route('/processed/<path:filename>')
+def serve_processed_video(filename):
+    """Serve processed video files."""
+    try:
+        file_path = os.path.join(processed_dir, filename)
+        logger.info(f"Serving processed video: {file_path}")
+        logger.info(f"File exists: {os.path.exists(file_path)}")
+        if os.path.exists(file_path):
+            logger.info(f"File size: {os.path.getsize(file_path)} bytes")
+        return send_file(file_path)
+    except FileNotFoundError:
+        logger.error(f"Processed file not found: {filename}")
+        return jsonify({"error": "Processed file not found"}), 404
+    except Exception as e:
+        logger.error(f"Error serving processed video {filename}: {str(e)}")
+        return jsonify({"error": f"Error serving file: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

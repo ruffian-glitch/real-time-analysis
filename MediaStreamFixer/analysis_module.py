@@ -34,7 +34,7 @@ def get_pose_instance():
         )
     return pose_instance
 
-def calculate_angle(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
+def calculate_angle(a, b, c) -> float:
     """Calculate angle between three points."""
     try:
         a = np.array(a)
@@ -166,7 +166,7 @@ def process_video_frames(video_path: str, frame_processor, max_duration_seconds:
     finally:
         cap.release()
 
-def analyze_pushups(video_path: str) -> Dict:
+def analyze_pushups(video_path: str, age: Optional[int] = None, weight_kg: Optional[float] = None, gender: Optional[str] = None) -> Dict:
     """Analyze pushup exercise from video."""
     logger.info(f"Starting pushup analysis for: {video_path}")
     
@@ -180,8 +180,18 @@ def analyze_pushups(video_path: str) -> Dict:
     
     results = {
         "drill_type": "pushups",
+        "drill_id": "pushups",
         "total_reps": 0,
         "reps": [],
+        "cadence_rpm": 0,  # Reps per minute
+        "avg_upward_duration": 0,  # Average time for upward phase
+        "avg_downward_duration": 0,  # Average time for downward phase
+        "head_neck_alignment": [],  # Head/neck position data
+        "marker_path_consistency": {
+            "shoulder_path": [],
+            "hip_path": [],
+            "consistency_score": 0
+        },
         "video_info": {
             "fps": fps,
             "total_frames": frame_count,
@@ -194,6 +204,14 @@ def analyze_pushups(video_path: str) -> Dict:
         'in_pushup': False,
         'current_rep_start': None,
         'elbow_angles': [],
+        'head_angles': [],
+        'current_rep_phases': [],
+        'upward_durations': [],
+        'downward_durations': [],
+        'shoulder_positions': [],
+        'hip_positions': [],
+        'current_phase': 'down',  # Track current phase
+        'phase_start_frame': None,
         'consecutive_up_frames': 0,
         'consecutive_down_frames': 0
     }
@@ -208,6 +226,15 @@ def analyze_pushups(video_path: str) -> Dict:
             right_shoulder = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_SHOULDER)
             right_elbow = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_ELBOW)
             right_wrist = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_WRIST)
+            
+            # Get head/neck landmarks
+            nose = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.NOSE)
+            left_ear = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_EAR)
+            right_ear = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_EAR)
+            
+            # Get hip landmarks
+            left_hip = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_HIP)
+            right_hip = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_HIP)
             
             # Check if we have at least one good arm
             left_valid = all(coord[0] is not None for coord in [left_shoulder, left_elbow, left_wrist])
@@ -226,26 +253,80 @@ def analyze_pushups(video_path: str) -> Dict:
                 avg_elbow_angle = sum(elbow_angles_frame) / len(elbow_angles_frame)
                 
                 # Calculate body angle (torso alignment)
-                left_hip = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_HIP)
                 body_angle = 180  # Default straight
-                if left_hip[0] is not None and left_shoulder[0] is not None:
+                if left_hip[0] is not None and left_shoulder[0] is not None and left_hip[1] is not None:
                     body_angle = calculate_angle(left_shoulder, left_hip, (left_hip[0], left_hip[1] - 0.1))
                 
-                state['elbow_angles'].append(avg_elbow_angle)
+                # Calculate head/neck angle
+                head_angle = 180  # Default neutral
+                if nose[0] is not None and left_shoulder[0] is not None and left_ear[0] is not None:
+                    # Calculate angle between nose, shoulder, and ear to determine head tilt
+                    head_angle = calculate_angle(nose, left_shoulder, left_ear)
                 
-                # Detect pushup phases with hysteresis
+                # Track shoulder and hip positions for path analysis
+                if (left_shoulder[0] is not None and right_shoulder[0] is not None and 
+                    left_shoulder[1] is not None and right_shoulder[1] is not None):
+                    avg_shoulder_x = (left_shoulder[0] + right_shoulder[0]) / 2
+                    avg_shoulder_y = (left_shoulder[1] + right_shoulder[1]) / 2
+                    state['shoulder_positions'].append((frame_number, avg_shoulder_x, avg_shoulder_y))
+                
+                if (left_hip[0] is not None and right_hip[0] is not None and 
+                    left_hip[1] is not None and right_hip[1] is not None):
+                    avg_hip_x = (left_hip[0] + right_hip[0]) / 2
+                    avg_hip_y = (left_hip[1] + right_hip[1]) / 2
+                    state['hip_positions'].append((frame_number, avg_hip_x, avg_hip_y))
+                
+                state['elbow_angles'].append(avg_elbow_angle)
+                state['head_angles'].append(head_angle)
+                
+                # Enhanced phase detection with more precise thresholds
                 if avg_elbow_angle < 110:  # Down position
                     state['consecutive_down_frames'] += 1
                     state['consecutive_up_frames'] = 0
                     
+                    # Phase transition detection
+                    if state['current_phase'] == 'up' and state['consecutive_down_frames'] >= 2:
+                        # Transition from up to down
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['upward_durations'].append(phase_duration)
+                            state['current_rep_phases'].append({
+                                'phase': 'up',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
+                        
+                        state['current_phase'] = 'down'
+                        state['phase_start_frame'] = frame_number
+                    
                     if state['consecutive_down_frames'] >= 2 and not state['in_pushup']:
                         state['in_pushup'] = True
                         state['current_rep_start'] = frame_number
+                        state['current_phase'] = 'down'
+                        state['phase_start_frame'] = frame_number
+                        state['current_rep_phases'] = []
                         logger.debug(f"Pushup started at frame {frame_number}")
                         
                 elif avg_elbow_angle > 150:  # Up position
                     state['consecutive_up_frames'] += 1
                     state['consecutive_down_frames'] = 0
+                    
+                    # Phase transition detection
+                    if state['current_phase'] == 'down' and state['consecutive_up_frames'] >= 2:
+                        # Transition from down to up
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['downward_durations'].append(phase_duration)
+                            state['current_rep_phases'].append({
+                                'phase': 'down',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
+                        
+                        state['current_phase'] = 'up'
+                        state['phase_start_frame'] = frame_number
                     
                     if state['consecutive_up_frames'] >= 2 and state['in_pushup']:
                         state['in_pushup'] = False
@@ -255,31 +336,125 @@ def analyze_pushups(video_path: str) -> Dict:
                             min_elbow_angle = min(rep_frames) if rep_frames else avg_elbow_angle
                             max_elbow_angle = max(rep_frames) if rep_frames else avg_elbow_angle
                             
+                            # Calculate average head angle for this rep
+                            rep_head_angles = state['head_angles'][-30:] if len(state['head_angles']) >= 30 else state['head_angles']
+                            avg_head_angle = sum(rep_head_angles) / len(rep_head_angles) if rep_head_angles else head_angle
+                            
                             rep_data = {
                                 "rep_number": len(results["reps"]) + 1,
                                 "start_frame": state['current_rep_start'],
                                 "end_frame": frame_number,
                                 "max_elbow_angle": round(max_elbow_angle, 1),
                                 "min_elbow_angle": round(min_elbow_angle, 1),
-                                "body_angle_at_bottom": round(body_angle, 1)
+                                "body_angle_at_bottom": round(body_angle, 1),
+                                "avg_head_angle": round(avg_head_angle, 1),
+                                "phases": state['current_rep_phases'].copy(),
+                                "current_phase": state['current_phase'] # Add current phase to rep data
                             }
                             results["reps"].append(rep_data)
                             logger.debug(f"Pushup completed: rep {rep_data['rep_number']}")
                             state['current_rep_start'] = None
                             state['elbow_angles'] = []
+                            state['head_angles'] = []
+                            state['current_rep_phases'] = []
     
     try:
         process_video_frames(video_path, process_frame)
         results["total_reps"] = len(results["reps"])
         
-        logger.info(f"Pushup analysis complete. Found {results['total_reps']} reps")
-        return results
+
         
+        # Calculate cadence (reps per minute)
+        session_duration_minutes = results["video_info"]["duration"] / 60
+        if session_duration_minutes > 0:
+            results["cadence_rpm"] = round(results["total_reps"] / session_duration_minutes, 1)
+        
+        # Calculate average phase durations
+        if state['upward_durations']:
+            results["avg_upward_duration"] = round(sum(state['upward_durations']) / len(state['upward_durations']), 2)
+        if state['downward_durations']:
+            results["avg_downward_duration"] = round(sum(state['downward_durations']) / len(state['downward_durations']), 2)
+        
+        # Calculate average head/neck alignment
+        if state['head_angles']:
+            avg_head_angle = sum(state['head_angles']) / len(state['head_angles'])
+            results["head_neck_alignment"] = {
+                "avg_angle": round(avg_head_angle, 1),
+                "deviation_from_neutral": round(abs(avg_head_angle - 180), 1)
+            }
+        
+        # Calculate marker path consistency
+        if state['shoulder_positions'] and state['hip_positions']:
+            # Calculate path consistency by measuring variance in movement
+            shoulder_x_coords = [pos[1] for pos in state['shoulder_positions']]
+            shoulder_y_coords = [pos[2] for pos in state['shoulder_positions']]
+            hip_x_coords = [pos[1] for pos in state['hip_positions']]
+            hip_y_coords = [pos[2] for pos in state['hip_positions']]
+            
+            # Calculate standard deviation as a measure of consistency
+            shoulder_x_std = np.std(shoulder_x_coords) if len(shoulder_x_coords) > 1 else 0
+            shoulder_y_std = np.std(shoulder_y_coords) if len(shoulder_y_coords) > 1 else 0
+            hip_x_std = np.std(hip_x_coords) if len(hip_x_coords) > 1 else 0
+            hip_y_std = np.std(hip_y_coords) if len(hip_y_coords) > 1 else 0
+            
+            # Consistency score (lower std = more consistent)
+            max_std = max(shoulder_x_std, shoulder_y_std, hip_x_std, hip_y_std)
+            consistency_score = max(0, 100 - (max_std * 1000))  # Scale to 0-100
+            
+            results["marker_path_consistency"] = {
+                "shoulder_path": {
+                    "x_std": round(shoulder_x_std, 4),
+                    "y_std": round(shoulder_y_std, 4)
+                },
+                "hip_path": {
+                    "x_std": round(hip_x_std, 4),
+                    "y_std": round(hip_y_std, 4)
+                },
+                "consistency_score": round(consistency_score, 1)
+            }
+        
+        # Rhythm and calories (existing logic)
+        rep_durations = []
+        for rep in results["reps"]:
+            start = rep["start_frame"] / fps
+            end = rep["end_frame"] / fps
+            rep["start_time"] = round(start, 3)
+            rep["end_time"] = round(end, 3)
+            rep_durations.append(end - start)
+        avg_rep_duration = sum(rep_durations) / len(rep_durations) if rep_durations else 0
+        # Rhythm label logic
+        if avg_rep_duration < 1.5:
+            rhythm_label = "Fast"
+        elif avg_rep_duration <= 2.5:
+            rhythm_label = "Moderate"
+        else:
+            rhythm_label = "Slow"
+        # Calories logic
+        MET = 8.0
+        session_duration = results["video_info"]["duration"]
+        session_duration_minutes = session_duration / 60
+        if weight_kg is None or age is None or gender is None:
+            calories_burned_session = 0
+            calories_per_hour = 0
+        else:
+            calories_burned_session = round((MET * weight_kg * 3.5) / 200 * session_duration_minutes)
+            calories_per_hour = round((MET * weight_kg * 3.5) / 200 * 60)
+        results["rhythm_label"] = rhythm_label
+        results["avg_rep_duration"] = round(avg_rep_duration, 2)
+        results["calories_burned_session"] = calories_burned_session
+        results["calories_per_hour"] = calories_per_hour
+        results["age"] = age if age is not None else None
+        results["weight_kg"] = weight_kg if weight_kg is not None else None
+        results["gender"] = gender if gender is not None else None
+        # Add a placeholder for comparison_score (to be filled by frontend)
+        results["comparison_score"] = None
+        logger.info(f"Pushup analysis complete. Found {results['total_reps']} reps, Cadence: {results['cadence_rpm']} rpm")
+        return results
     except Exception as e:
         logger.error(f"Error in pushup analysis: {e}")
         raise
 
-def analyze_squats(video_path: str) -> Dict:
+def analyze_squats(video_path: str, age: Optional[int] = None, weight_kg: Optional[float] = None, gender: Optional[str] = None) -> Dict:
     """Analyze squat exercise from video."""
     logger.info(f"Starting squat analysis for: {video_path}")
     
@@ -293,6 +468,7 @@ def analyze_squats(video_path: str) -> Dict:
     
     results = {
         "drill_type": "squats",
+        "drill_id": "squats",
         "total_reps": 0,
         "reps": [],
         "video_info": {
@@ -308,7 +484,10 @@ def analyze_squats(video_path: str) -> Dict:
         'current_rep_start': None,
         'knee_angles': [],
         'consecutive_up_frames': 0,
-        'consecutive_down_frames': 0
+        'consecutive_down_frames': 0,
+        'current_phase': 'down',  # Track current phase
+        'phase_start_frame': None,
+        'current_rep_phases': []  # Track phases for current rep
     }
     
     def process_frame(frame_number, pose_results, fps):
@@ -341,7 +520,7 @@ def analyze_squats(video_path: str) -> Dict:
                 # Calculate torso angle
                 left_shoulder = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_SHOULDER)
                 torso_angle = 180  # Default straight
-                if left_shoulder[0] is not None and left_hip[0] is not None:
+                if left_shoulder[0] is not None and left_hip[0] is not None and left_hip[1] is not None:
                     torso_angle = calculate_angle((left_hip[0], left_hip[1] + 0.1), left_hip, left_shoulder)
                 
                 state['knee_angles'].append(avg_knee_angle)
@@ -351,14 +530,46 @@ def analyze_squats(video_path: str) -> Dict:
                     state['consecutive_down_frames'] += 1
                     state['consecutive_up_frames'] = 0
                     
+                    # Phase transition detection
+                    if state['current_phase'] == 'up' and state['consecutive_down_frames'] >= 2:
+                        # Transition from up to down
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['current_rep_phases'].append({
+                                'phase': 'up',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
+                        
+                        state['current_phase'] = 'down'
+                        state['phase_start_frame'] = frame_number
+                    
                     if state['consecutive_down_frames'] >= 2 and not state['in_squat']:
                         state['in_squat'] = True
                         state['current_rep_start'] = frame_number
+                        state['current_phase'] = 'down'
+                        state['phase_start_frame'] = frame_number
                         logger.debug(f"Squat started at frame {frame_number}")
                         
                 elif avg_knee_angle > 160:  # Up position
                     state['consecutive_up_frames'] += 1
                     state['consecutive_down_frames'] = 0
+                    
+                    # Phase transition detection
+                    if state['current_phase'] == 'down' and state['consecutive_up_frames'] >= 2:
+                        # Transition from down to up
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['current_rep_phases'].append({
+                                'phase': 'down',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
+                        
+                        state['current_phase'] = 'up'
+                        state['phase_start_frame'] = frame_number
                     
                     if state['consecutive_up_frames'] >= 2 and state['in_squat']:
                         state['in_squat'] = False
@@ -372,25 +583,61 @@ def analyze_squats(video_path: str) -> Dict:
                                 "start_frame": state['current_rep_start'],
                                 "end_frame": frame_number,
                                 "min_knee_angle": round(min_knee_angle, 1),
-                                "torso_angle_at_bottom": round(torso_angle, 1)
+                                "torso_angle_at_bottom": round(torso_angle, 1),
+                                "phases": state['current_rep_phases'].copy(),
+                                "current_phase": state['current_phase']  # Add current phase to rep data
                             }
                             results["reps"].append(rep_data)
                             logger.debug(f"Squat completed: rep {rep_data['rep_number']}")
                             state['current_rep_start'] = None
                             state['knee_angles'] = []
+                            state['current_rep_phases'] = []
     
     try:
         process_video_frames(video_path, process_frame)
         results["total_reps"] = len(results["reps"])
-        
+        # Rhythm and calories
+        rep_durations = []
+        for rep in results["reps"]:
+            start = rep["start_frame"] / fps
+            end = rep["end_frame"] / fps
+            rep["start_time"] = round(start, 3)
+            rep["end_time"] = round(end, 3)
+            rep_durations.append(end - start)
+        avg_rep_duration = sum(rep_durations) / len(rep_durations) if rep_durations else 0
+        # Rhythm label logic
+        if avg_rep_duration < 1.5:
+            rhythm_label = "Fast"
+        elif avg_rep_duration <= 2.5:
+            rhythm_label = "Moderate"
+        else:
+            rhythm_label = "Slow"
+        # Calories logic
+        MET = 5.0
+        session_duration = results["video_info"]["duration"]
+        session_duration_minutes = session_duration / 60
+        if weight_kg is None or age is None or gender is None:
+            calories_burned_session = 0
+            calories_per_hour = 0
+        else:
+            calories_burned_session = round((MET * weight_kg * 3.5) / 200 * session_duration_minutes)
+            calories_per_hour = round((MET * weight_kg * 3.5) / 200 * 60)
+        results["rhythm_label"] = rhythm_label
+        results["avg_rep_duration"] = round(avg_rep_duration, 2)
+        results["calories_burned_session"] = calories_burned_session
+        results["calories_per_hour"] = calories_per_hour
+        results["age"] = age if age is not None else None
+        results["weight_kg"] = weight_kg if weight_kg is not None else None
+        results["gender"] = gender if gender is not None else None
+        # Add a placeholder for comparison_score (to be filled by frontend)
+        results["comparison_score"] = None
         logger.info(f"Squat analysis complete. Found {results['total_reps']} reps")
         return results
-        
     except Exception as e:
         logger.error(f"Error in squat analysis: {e}")
         raise
 
-def analyze_situps(video_path: str) -> Dict:
+def analyze_situps(video_path: str, age: Optional[int] = None, weight_kg: Optional[float] = None, gender: Optional[str] = None) -> Dict:
     """Analyze situp exercise from video."""
     logger.info(f"Starting situp analysis for: {video_path}")
     
@@ -404,6 +651,7 @@ def analyze_situps(video_path: str) -> Dict:
     
     results = {
         "drill_type": "situps",
+        "drill_id": "situps",
         "total_reps": 0,
         "reps": [],
         "video_info": {
@@ -418,56 +666,130 @@ def analyze_situps(video_path: str) -> Dict:
         'in_situp': False,
         'current_rep_start': None,
         'consecutive_up_frames': 0,
-        'consecutive_down_frames': 0
+        'consecutive_down_frames': 0,
+        'min_hip_angle': 180, # Initialize to a large value
+        'current_phase': 'down',  # Track current phase
+        'phase_start_frame': None,
+        'current_rep_phases': []  # Track phases for current rep
     }
     
+    UP_THRESHOLD = 60
+    DOWN_THRESHOLD = 100
+    MIN_UP_FRAMES = 2
+    MIN_DOWN_FRAMES = 2
+
+    state['up_frames'] = 0
+    state['down_frames'] = 0
+
     def process_frame(frame_number, pose_results, fps):
         if pose_results.pose_landmarks:
-            # Get key points for situp analysis
             left_shoulder = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_SHOULDER)
             left_hip = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_HIP)
             left_knee = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_KNEE)
-            
-            # Only proceed if we have valid landmarks
             if all(coord[0] is not None for coord in [left_shoulder, left_hip, left_knee]):
-                # Calculate hip angle
                 hip_angle = calculate_angle(left_shoulder, left_hip, left_knee)
-                
-                # Detect situp phases with hysteresis
-                if hip_angle < 70:  # Up position
-                    state['consecutive_up_frames'] += 1
-                    state['consecutive_down_frames'] = 0
-                    
-                    if state['consecutive_up_frames'] >= 2 and not state['in_situp']:
-                        state['in_situp'] = True
-                        state['current_rep_start'] = frame_number
-                        logger.debug(f"Situp started at frame {frame_number}")
+                logger.debug(f"[Situp] Frame {frame_number} hip_angle={hip_angle:.1f} in_situp={state['in_situp']} up_frames={state['up_frames']} down_frames={state['down_frames']}")
+                if hip_angle < UP_THRESHOLD:
+                    state['up_frames'] += 1
+                    state['down_frames'] = 0
+                    # Phase transition detection
+                    if state['current_phase'] == 'down' and state['up_frames'] >= MIN_UP_FRAMES:
+                        # Transition from down to up
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['current_rep_phases'].append({
+                                'phase': 'down',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
                         
-                elif hip_angle > 100:  # Down position
-                    state['consecutive_down_frames'] += 1
-                    state['consecutive_up_frames'] = 0
-                    
-                    if state['consecutive_down_frames'] >= 2 and state['in_situp']:
-                        state['in_situp'] = False
-                        if state['current_rep_start'] is not None:
-                            rep_data = {
-                                "rep_number": len(results["reps"]) + 1,
-                                "start_frame": state['current_rep_start'],
-                                "end_frame": frame_number,
-                                "hip_angle_top": round(hip_angle, 1),
-                                "hip_angle_bottom": round(hip_angle, 1)
-                            }
-                            results["reps"].append(rep_data)
-                            logger.debug(f"Situp completed: rep {rep_data['rep_number']}")
-                            state['current_rep_start'] = None
+                        state['current_phase'] = 'up'
+                        state['phase_start_frame'] = frame_number
+                elif hip_angle > DOWN_THRESHOLD:
+                    state['down_frames'] += 1
+                    state['up_frames'] = 0
+                    # Phase transition detection
+                    if state['current_phase'] == 'up' and state['down_frames'] >= MIN_DOWN_FRAMES:
+                        # Transition from up to down
+                        if state['phase_start_frame'] is not None:
+                            phase_duration = (frame_number - state['phase_start_frame']) / fps
+                            state['current_rep_phases'].append({
+                                'phase': 'up',
+                                'duration': phase_duration,
+                                'start_frame': state['phase_start_frame'],
+                                'end_frame': frame_number
+                            })
+                        
+                        state['current_phase'] = 'down'
+                        state['phase_start_frame'] = frame_number
+                else:
+                    state['up_frames'] = 0
+                    state['down_frames'] = 0
+
+                if state['up_frames'] >= MIN_UP_FRAMES and not state['in_situp']:
+                    state['in_situp'] = True
+                    state['current_rep_start'] = frame_number
+                    state['current_phase'] = 'up'
+                    state['phase_start_frame'] = frame_number
+                    logger.debug(f"Situp started at frame {frame_number}")
+                elif state['down_frames'] >= MIN_DOWN_FRAMES and state['in_situp']:
+                    if state['current_rep_start'] is not None:
+                        rep_data = {
+                            "rep_number": len(results["reps"]) + 1,
+                            "start_frame": state['current_rep_start'],
+                            "end_frame": frame_number,
+                            "hip_angle_top": round(hip_angle, 1),
+                            "hip_angle_bottom": round(state['min_hip_angle'], 1),
+                            "phases": state['current_rep_phases'].copy(),
+                            "current_phase": state['current_phase']  # Add current phase to rep data
+                        }
+                        results["reps"].append(rep_data)
+                    state['in_situp'] = False
+                    state['current_rep_start'] = None
+                    state['min_hip_angle'] = 180
+                    state['current_rep_phases'] = []
     
     try:
         process_video_frames(video_path, process_frame)
         results["total_reps"] = len(results["reps"])
-        
+        # Rhythm and calories
+        rep_durations = []
+        for rep in results["reps"]:
+            start = rep["start_frame"] / fps
+            end = rep["end_frame"] / fps
+            rep["start_time"] = round(start, 3)
+            rep["end_time"] = round(end, 3)
+            rep_durations.append(end - start)
+        avg_rep_duration = sum(rep_durations) / len(rep_durations) if rep_durations else 0
+        # Rhythm label logic
+        if avg_rep_duration < 1.5:
+            rhythm_label = "Fast"
+        elif avg_rep_duration <= 2.5:
+            rhythm_label = "Moderate"
+        else:
+            rhythm_label = "Slow"
+        # Calories logic
+        MET = 4.5
+        session_duration = results["video_info"]["duration"]
+        session_duration_minutes = session_duration / 60
+        if weight_kg is None or age is None or gender is None:
+            calories_burned_session = 0
+            calories_per_hour = 0
+        else:
+            calories_burned_session = round((MET * weight_kg * 3.5) / 200 * session_duration_minutes)
+            calories_per_hour = round((MET * weight_kg * 3.5) / 200 * 60)
+        results["rhythm_label"] = rhythm_label
+        results["avg_rep_duration"] = round(avg_rep_duration, 2)
+        results["calories_burned_session"] = calories_burned_session
+        results["calories_per_hour"] = calories_per_hour
+        results["age"] = age if age is not None else None
+        results["weight_kg"] = weight_kg if weight_kg is not None else None
+        results["gender"] = gender if gender is not None else None
+        # Add a placeholder for comparison_score (to be filled by frontend)
+        results["comparison_score"] = None
         logger.info(f"Situp analysis complete. Found {results['total_reps']} reps")
         return results
-        
     except Exception as e:
         logger.error(f"Error in situp analysis: {e}")
         raise
@@ -721,7 +1043,8 @@ def analyze_single_leg_balance(video_path: str) -> Dict:
         if pose_results.pose_landmarks:
             left_ankle = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.LEFT_ANKLE)
             right_ankle = get_landmark_coordinates(pose_results.pose_landmarks, mp_pose.PoseLandmark.RIGHT_ANKLE)
-            if left_ankle[0] is not None and right_ankle[0] is not None:
+            if (left_ankle[0] is not None and right_ankle[0] is not None and 
+                left_ankle[1] is not None and right_ankle[1] is not None):
                 timestamp = frame_number / fps if fps > 0 else frame_number
                 # Determine which leg is lifted (higher y means lower on screen)
                 if left_ankle[1] < right_ankle[1] - 0.05:
@@ -915,7 +1238,7 @@ def correct_video_orientation(input_path: str, drill_type: str) -> str:
     logger.info(f"[Orientation] Returning corrected video path: {corrected_path}")
     return corrected_path
 
-def analyze_video(video_path: str, drill_type: str) -> Dict:
+def analyze_video(video_path: str, drill_type: str, age=None, weight_kg=None, gender=None) -> Dict:
     """Main router function to call the correct analysis function."""
     logger.info(f"Analyzing video: {video_path} for drill type: {drill_type}")
     
@@ -934,11 +1257,11 @@ def analyze_video(video_path: str, drill_type: str) -> Dict:
         
         # Route to appropriate analysis function
         if drill_type == 'pushups':
-            result = analyze_pushups(corrected_path)
+            result = analyze_pushups(corrected_path, age, weight_kg, gender)
         elif drill_type == 'squats':
-            result = analyze_squats(corrected_path)
+            result = analyze_squats(corrected_path, age, weight_kg, gender)
         elif drill_type == 'situps':
-            result = analyze_situps(corrected_path)
+            result = analyze_situps(corrected_path, age, weight_kg, gender)
         elif drill_type == 'chair_hold':
             result = analyze_chair_hold(corrected_path)
         elif drill_type == 'elbow_plank':

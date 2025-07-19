@@ -8,8 +8,25 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-chartjs-2@5.2.0/dist/index.umd.js"></script>
+    <!-- MediaPipe Pose Detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script>
+      // Define pose connections for drawing skeleton
+      window.POSE_CONNECTIONS = [
+        [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], // Arms
+        [11, 23], [12, 24], [23, 24], // Torso
+        [23, 25], [25, 27], [27, 29], [29, 31], // Left leg
+        [24, 26], [26, 28], [28, 30], [30, 32], // Right leg
+        [15, 17], [15, 19], [15, 21], [16, 18], [16, 20], [16, 22], // Hands
+        [27, 31], [28, 32], // Feet
+        [11, 12], [23, 24] // Additional torso connections
+      ];
+    </script>
     <style>
         * {
             margin: 0;
@@ -85,6 +102,8 @@
             font-size: 14px;
             font-weight: 600;
             backdrop-filter: blur(5px);
+            pointer-events: none;
+            z-index: 5;
         }
         
         .metrics-section {
@@ -191,8 +210,10 @@
             font-size: 24px;
             cursor: pointer;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 1000;
+            transform-origin: bottom right;
+            animation: pulse 2s infinite;
         }
         
         .chat-button:hover {
@@ -200,98 +221,318 @@
             box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
         }
         
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            }
+            50% {
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 0 0 0 rgba(102, 126, 234, 0.7);
+            }
+            100% {
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            }
+        }
+        
+        .chat-button.expanded {
+            transform: scale(0);
+            opacity: 0;
+        }
+        
         .chat-panel {
             position: fixed;
-            left: -50%;
-            top: 0;
-            width: 50%;
-            height: 100vh;
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(20px);
-            transition: left 0.3s ease;
+            bottom: 30px;
+            right: 30px;
+            width: 380px;
+            height: 500px;
+            min-width: 300px;
+            min-height: 400px;
+            max-width: 600px;
+            max-height: 80vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 999;
             display: flex;
             flex-direction: column;
-            box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
+            transform: scale(0) translateY(20px);
+            opacity: 0;
+            transform-origin: bottom right;
+            overflow: hidden;
+        }
+        
+        .chat-panel.video-playing {
+            transform: scale(0) translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .chat-resize-handle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            cursor: nw-resize;
+            background: linear-gradient(135deg, #667eea 50%, transparent 50%);
+            border-radius: 20px 0 0 0;
+            opacity: 0.6;
+            transition: opacity 0.2s ease;
+        }
+        
+        .chat-resize-handle:hover {
+            opacity: 1;
+        }
+        
+        .chat-panel:hover .chat-resize-handle {
+            opacity: 0.8;
+        }
+        
+        .chat-panel.resizing {
+            transition: none;
+            user-select: none;
+        }
+        
+        .chat-panel.resizing .chat-resize-handle {
+            opacity: 1;
+            background: linear-gradient(135deg, #764ba2 50%, transparent 50%);
+        }
+        
+        .video-segment-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 600;
+            z-index: 10;
+            animation: pulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .video-segment-indicator.hidden {
+            display: none;
+        }
+        
+        .chat-button.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
         }
         
         .chat-panel.open {
-            left: 0;
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            animation: chatPanelEntrance 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        @keyframes chatPanelEntrance {
+            0% {
+                transform: scale(0.8) translateY(20px);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
         
         .chat-header {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 20px;
+            padding: 16px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-radius: 20px 20px 0 0;
         }
         
         .chat-close {
-            background: none;
+            background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 18px;
             cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        
+        .chat-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
         
         .chat-messages {
             flex: 1;
-            padding: 20px;
+            padding: 16px 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
+            background: #f8f9fa;
+            scrollbar-width: thin;
+            scrollbar-color: #c1c1c1 transparent;
+            scroll-behavior: smooth;
+        }
+        
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         .chat-message {
-            max-width: 80%;
-            padding: 12px 16px;
-            border-radius: 18px;
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
             word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: messageSlideIn 0.3s ease-out;
         }
         
         .chat-message.user {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             align-self: flex-end;
+            margin-left: 20%;
         }
         
         .chat-message.ai {
-            background: #f0f0f0;
+            background: white;
             color: #333;
             align-self: flex-start;
+            margin-right: 20%;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .chat-input-container {
-            padding: 20px;
-            border-top: 1px solid #e0e0e0;
+            padding: 16px 20px;
+            border-top: 1px solid #e9ecef;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            background: white;
         }
         
         .chat-input {
             flex: 1;
             padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
             font-size: 14px;
             outline: none;
+            transition: all 0.2s ease;
+            background: #f8f9fa;
         }
         
         .chat-input:focus {
             border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         .chat-send {
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 25px;
+            padding: 12px 16px;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            min-width: 60px;
+        }
+        
+        .chat-send:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .chat-send:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .chat-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+            z-index: 998;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .chat-backdrop.visible {
+            opacity: 1;
+        }
+        
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .typing-indicator span {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes typing {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
         
         .rep-details-table {
@@ -323,8 +564,17 @@
             }
             
             .chat-panel {
-                width: 100%;
-                left: -100%;
+                width: calc(100vw - 40px) !important;
+                height: 400px !important;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                min-width: unset;
+                max-width: unset;
+            }
+            
+            .chat-resize-handle {
+                display: none;
             }
             
             .metrics-grid {
@@ -350,630 +600,19 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .metric-sublabel {
+            font-size: 0.85em;
+            opacity: 0.8;
+            margin-top: -6px;
+        }
+        
+
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    {% raw %}
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        // Mock analysis data for development
-        const mockAnalysisData = {
-            drill_type: "squats",
-            total_reps: 24,
-            reps: [
-                { rep_number: 1, start_frame: 1, end_frame: 15, min_knee_angle: 76.2, torso_angle_at_bottom: 167.5 },
-                { rep_number: 2, start_frame: 35, end_frame: 54, min_knee_angle: 72.4, torso_angle_at_bottom: 166.6 },
-                { rep_number: 3, start_frame: 73, end_frame: 92, min_knee_angle: 67.1, torso_angle_at_bottom: 168.0 },
-                // ... more reps
-            ],
-            video_info: {
-                fps: 29.92,
-                total_frames: 923,
-                duration: 30.8
-            }
-        };
-
-        const VideoPlayer = ({ analysisData, currentSegment, onTimeUpdate }) => {
-            const videoRef = useRef(null);
-            const [isPlaying, setIsPlaying] = useState(false);
-            const [repCount, setRepCount] = useState(0);
-            const [repStatus, setRepStatus] = useState('Ready');
-            const [holdTime, setHoldTime] = useState(0);
-            const [lastTime, setLastTime] = useState(0);
-
-            // Determine maxWidth based on drill type
-            const getMaxWidth = () => {
-                if (!analysisData) return '900px';
-                switch (analysisData.drill_type) {
-                    case 'pushups':
-                    case 'situps':
-                    case 'elbow_plank':
-                        return '900px'; // landscape drills
-                    case 'squats':
-                    case 'chair_hold':
-                    case 'single_leg_balance_left':
-                    case 'single_leg_balance_right':
-                        return '400px'; // portrait drills
-                    default:
-                        return '600px';
-                }
-            };
-
-            // Determine if drill is landscape
-            const isLandscapeDrill = analysisData && ['pushups', 'situps', 'elbow_plank'].includes(analysisData.drill_type);
-
-            useEffect(() => {
-                if (currentSegment && videoRef.current) {
-                    const { startTime, endTime } = currentSegment;
-                    videoRef.current.currentTime = startTime;
-                    videoRef.current.play();
-                    const handleTimeUpdate = () => {
-                        if (videoRef.current.currentTime >= endTime) {
-                            videoRef.current.pause();
-                            setIsPlaying(false);
-                        }
-                    };
-                    videoRef.current.addEventListener('timeupdate', handleTimeUpdate);
-                    return () => videoRef.current?.removeEventListener('timeupdate', handleTimeUpdate);
-                }
-            }, [currentSegment]);
-
-            // Real-time rep counter and status logic
-            const handleTimeUpdate = () => {
-                const t = videoRef.current.currentTime;
-                setLastTime(t);
-                let count = 0;
-                let status = 'Up';
-                let repIdx = -1;
-                // Rep-based drills
-                if (analysisData && ['pushups','situps','squats'].includes(analysisData.drill_type) && analysisData.reps) {
-                    for (let i = 0; i < analysisData.reps.length; ++i) {
-                        const rep = analysisData.reps[i];
-                        if (t >= rep.end_frame / analysisData.video_info.fps) count++;
-                        if (t >= rep.start_frame / analysisData.video_info.fps && t <= rep.end_frame / analysisData.video_info.fps) {
-                            repIdx = i;
-                            const mid = (rep.start_frame + rep.end_frame) / 2 / analysisData.video_info.fps;
-                            status = t < mid ? 'Down' : 'Up';
-                        }
-                    }
-                    setRepCount(count);
-                    setRepStatus(repIdx === -1 ? 'Ready' : status);
-                }
-                // Hold-based drills
-                if (analysisData && ['chair_hold','elbow_plank','single_leg_balance_left','single_leg_balance_right'].includes(analysisData.drill_type)) {
-                    let totalHold = 0;
-                    let foundSegment = false;
-                    if (Array.isArray(analysisData.time_series_data) && analysisData.time_series_data.length > 0 && analysisData.time_series_data[0].start !== undefined) {
-                        // Use {start, end} segments
-                        for (const seg of analysisData.time_series_data) {
-                            if (t >= seg.end) {
-                                totalHold += seg.end - seg.start;
-                            } else if (t >= seg.start && t < seg.end) {
-                                totalHold += t - seg.start;
-                                foundSegment = true;
-                                break;
-                            }
-                        }
-                    } else if (Array.isArray(analysisData.valid_hold_periods) && analysisData.valid_hold_periods.length > 0) {
-                        for (const seg of analysisData.valid_hold_periods) {
-                            if (t >= seg.end) {
-                                totalHold += seg.end - seg.start;
-                            } else if (t >= seg.start && t < seg.end) {
-                                totalHold += t - seg.start;
-                                foundSegment = true;
-                                break;
-                            }
-                        }
-                    }
-                    // Fallback: if no segments or t never in a segment, increment from 0 up to total_hold_time as video plays
-                    if ((!foundSegment && totalHold === 0) || (!Array.isArray(analysisData.time_series_data) && !Array.isArray(analysisData.valid_hold_periods))) {
-                        totalHold = 0; // Only start timer when in a valid segment
-                    }
-                    setHoldTime(totalHold);
-                }
-                if (onTimeUpdate) onTimeUpdate();
-            };
-
-            const getOverlayContent = () => {
-                if (!analysisData) return '';
-                if (["pushups","situps","squats"].includes(analysisData.drill_type)) {
-                    return (
-                        <>
-                            <div>Rep Count: {repCount}</div>
-                            <div>Status: {repStatus}</div>
-                        </>
-                    );
-                }
-                if (["chair_hold","elbow_plank"].includes(analysisData.drill_type)) {
-                    return (
-                        <div>Hold Time: {holdTime.toFixed(2)}s</div>
-                    );
-                }
-                if (["single_leg_balance","single_leg_balance_left","single_leg_balance_right"].includes(analysisData.drill_type)) {
-                    // Real-time: show hold timer and ankle lifted in overlay for single leg balance only
-                    let currentLeg = null;
-                    let totalHold = 0;
-                    let foundSegment = false;
-                    const t = lastTime;
-                    if (Array.isArray(analysisData.time_series_data)) {
-                        for (const seg of analysisData.time_series_data) {
-                            if (t >= seg.end) {
-                                totalHold += seg.end - seg.start;
-                            } else if (t >= seg.start && t < seg.end) {
-                                totalHold += t - seg.start;
-                                currentLeg = seg.leg_side;
-                                foundSegment = true;
-                                break;
-                            }
-                        }
-                    }
-                    // Only show timer when in a valid segment
-                    if (!foundSegment) totalHold = 0;
-                    return (
-                        <>
-                            <div>Hold Time: {totalHold.toFixed(2)}s</div>
-                            <div>Ankle lifted: {currentLeg ? currentLeg.charAt(0).toUpperCase() + currentLeg.slice(1) : 'None'}</div>
-                        </>
-                    );
-                }
-                switch (analysisData.drill_type) {
-                    default:
-                        return <div>Analysis Complete</div>;
-                }
-            };
-
-            return (
-                <div className="video-container" style={{ width: '100%', maxWidth: getMaxWidth(), margin: '0 auto' }}>
-                    <video
-                        ref={videoRef}
-                        className="video-player"
-                        style={isLandscapeDrill
-                            ? { width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px', boxShadow: '0 4px 24px 0 #b3c6ff33' }
-                            : { width: '100%', borderRadius: '12px', boxShadow: '0 4px 24px 0 #b3c6ff33' }}
-                        controls
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                        onTimeUpdate={handleTimeUpdate}
-                    >
-                        <source src={`/uploads/${analysisData?.video_path || 'test_video.mp4'}`} type="video/mp4" />
-                        Your browser does not support the video tag.
-                    </video>
-                    <div className="video-overlay">
-                        {getOverlayContent()}
-                    </div>
-                </div>
-            );
-        };
-
-        const MetricsDashboard = ({ analysisData, userInputs, onInputChange }) => {
-            const calculateCalories = () => {
-                if (!userInputs.age || !userInputs.weight || !userInputs.gender) return 0;
-                
-                const baseCalories = {
-                    squats: 0.32,
-                    pushups: 0.29,
-                    situps: 0.25,
-                    chair_hold: 0.1,
-                    elbow_plank: 0.12,
-                    single_leg_balance: 0.08
-                };
-                
-                const genderMultiplier = userInputs.gender === 'male' ? 1.2 : 1.0;
-                const ageMultiplier = userInputs.age > 30 ? 0.95 : 1.0;
-                
-                const reps = analysisData?.total_reps || 0;
-                const duration = analysisData?.total_hold_time || analysisData?.total_balance_time || analysisData?.video_info?.duration || 0;
-                
-                const calories = (baseCalories[analysisData?.drill_type] || 0.2) * 
-                    (reps || duration) * 
-                    (userInputs.weight / 70) * 
-                    genderMultiplier * 
-                    ageMultiplier;
-                
-                return Math.round(calories * 10) / 10;
-            };
-
-            const getComparison = () => {
-                if (!analysisData) return '';
-                
-                const performance = analysisData.total_reps || analysisData.total_hold_time || 0;
-                const avgPerformance = performance * (0.85 + Math.random() * 0.3);
-                const improvement = ((performance - avgPerformance) / avgPerformance * 100).toFixed(1);
-                
-                return improvement > 0 
-                    ? `You performed ${improvement}% better than average for your group!`
-                    : `You're ${Math.abs(improvement)}% below average - keep practicing!`;
-            };
-
-            const getMainLeg = () => {
-                if (Array.isArray(analysisData?.time_series_data) && analysisData.time_series_data.length > 0) {
-                    const counts = {};
-                    for (const seg of analysisData.time_series_data) {
-                        counts[seg.leg_side] = (counts[seg.leg_side] || 0) + (seg.end - seg.start);
-                    }
-                    let maxLeg = null, maxTime = 0;
-                    for (const leg in counts) {
-                        if (counts[leg] > maxTime) {
-                            maxLeg = leg;
-                            maxTime = counts[leg];
-                        }
-                    }
-                    return maxLeg ? maxLeg.charAt(0).toUpperCase() + maxLeg.slice(1) : 'None';
-                }
-                return 'None';
-            };
-
-            return (
-                <div className="metrics-section">
-                    <h2>Performance Metrics</h2>
-                    
-                    <div className="metrics-grid">
-                        <div className="metric-card">
-                            <div className="metric-value">{analysisData?.total_reps || analysisData?.total_hold_time || analysisData?.total_balance_time || 0}</div>
-                            <div className="metric-label">
-                                {analysisData?.total_reps ? 'Total Reps' : 'Hold Time (s)'}
-                            </div>
-                        </div>
-                        <div className="metric-card">
-                            <div className="metric-value">{analysisData?.video_info?.duration?.toFixed(1) || '0'}s</div>
-                            <div className="metric-label">Duration</div>
-                        </div>
-                        <div className="metric-card">
-                            <div className="metric-value">{calculateCalories()}</div>
-                            <div className="metric-label">Calories Burned</div>
-                        </div>
-                        <div className="metric-card">
-                            <div className="metric-value">{analysisData?.video_info?.fps?.toFixed(1) || '30'}</div>
-                            <div className="metric-label">FPS</div>
-                        </div>
-                        {['single_leg_balance','single_leg_balance_left','single_leg_balance_right'].includes(analysisData?.drill_type) && (
-                            <div className="metric-card">
-                                <div className="metric-value">{getMainLeg()}</div>
-                                <div className="metric-label">Main Ankle Raised</div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="user-inputs">
-                        <div className="input-group">
-                            <label>Age</label>
-                            <input
-                                type="number"
-                                value={userInputs.age}
-                                onChange={(e) => onInputChange('age', e.target.value)}
-                                placeholder="Enter your age"
-                            />
-                        </div>
-                        <div className="input-group">
-                            <label>Gender</label>
-                            <select
-                                value={userInputs.gender}
-                                onChange={(e) => onInputChange('gender', e.target.value)}
-                            >
-                                <option value="">Select gender</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
-                        </div>
-                        <div className="input-group">
-                            <label>Weight (kg)</label>
-                            <input
-                                type="number"
-                                value={userInputs.weight}
-                                onChange={(e) => onInputChange('weight', e.target.value)}
-                                placeholder="Enter weight"
-                            />
-                        </div>
-                    </div>
-
-                    {userInputs.age && userInputs.gender && userInputs.weight && (
-                        <div className="comparison-section">
-                            <h3>Performance Comparison</h3>
-                            <p>{getComparison()}</p>
-                        </div>
-                    )}
-
-                    {analysisData?.reps && (
-                        <div>
-                            <h3>Detailed Rep Analysis</h3>
-                            <table className="rep-details-table">
-                                <thead>
-                                    <tr>
-                                        <th>Rep</th>
-                                        <th>Frames</th>
-                                        <th>Metrics</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {analysisData.reps.slice(0, 8).map((rep) => (
-                                        <tr key={rep.rep_number}>
-                                            <td>{rep.rep_number}</td>
-                                            <td>{rep.start_frame} - {rep.end_frame}</td>
-                                            <td>
-                                                {rep.min_knee_angle && `Knee: ${rep.min_knee_angle}°`}
-                                                {rep.min_elbow_angle && `Elbow: ${rep.min_elbow_angle}°`}
-                                                {rep.hip_angle_top && `Hip: ${rep.hip_angle_top}°`}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        const PerformanceChart = ({ analysisData }) => {
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-
-            useEffect(() => {
-                if (chartRef.current && analysisData?.reps) {
-                    const ctx = chartRef.current.getContext('2d');
-                    
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-
-                    const labels = analysisData.reps.map(rep => `Rep ${rep.rep_number}`);
-                    const data = analysisData.reps.map(rep => 
-                        rep.min_knee_angle || rep.min_elbow_angle || rep.hip_angle_top || 0
-                    );
-
-                    chartInstance.current = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Form Consistency',
-                                data: data,
-                                borderColor: '#667eea',
-                                backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: false
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'top'
-                                }
-                            }
-                        }
-                    });
-                }
-
-                return () => {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-                };
-            }, [analysisData]);
-
-            return (
-                <div className="charts-section">
-                    <h2>Performance Trends</h2>
-                    <div className="chart-container">
-                        <canvas ref={chartRef}></canvas>
-                    </div>
-                </div>
-            );
-        };
-
-        const ChatInterface = ({ analysisData, isOpen, onClose, onVideoSegment }) => {
-            const [messages, setMessages] = useState([
-                {
-                    type: 'ai',
-                    content: `Great! I've analyzed your ${analysisData?.drill_type || 'exercise'} video. Ask me anything about your performance!`
-                }
-            ]);
-            const [inputValue, setInputValue] = useState('');
-            const [isLoading, setIsLoading] = useState(false);
-
-            const sendMessage = async () => {
-                if (!inputValue.trim()) return;
-
-                const userMessage = { type: 'user', content: inputValue };
-                setMessages(prev => [...prev, userMessage]);
-                setInputValue('');
-                setIsLoading(true);
-
-                try {
-                    const response = await fetch('/api/chat', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            question: inputValue,
-                            analysis_data: analysisData
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.response) {
-                        setMessages(prev => [...prev, { type: 'ai', content: data.response }]);
-                        
-                        // Handle video commands
-                        if (data.videoCommand && data.videoCommand.startTime !== undefined) {
-                            onVideoSegment({
-                                startTime: data.videoCommand.startTime,
-                                endTime: data.videoCommand.endTime
-                            });
-                        }
-                    }
-                } catch (error) {
-                    console.error('Chat error:', error);
-                    setMessages(prev => [...prev, { 
-                        type: 'ai', 
-                        content: 'Sorry, I encountered an error. Please try again.' 
-                    }]);
-                }
-
-                setIsLoading(false);
-            };
-
-            const handleKeyPress = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            };
-
-            return (
-                <div className={`chat-panel ${isOpen ? 'open' : ''}`}>
-                    <div className="chat-header">
-                        <h3>🤖 AI Coach Chat</h3>
-                        <button className="chat-close" onClick={onClose}>×</button>
-                    </div>
-                    
-                    <div className="chat-messages">
-                        {messages.map((message, index) => (
-                            <div key={index} className={`chat-message ${message.type}`}>
-                                {message.content}
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div className="chat-message ai">
-                                <div className="loading"></div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="chat-input-container">
-                        <input
-                            className="chat-input"
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyPress={handleKeyPress}
-                            placeholder="Ask about your form, best rep, improvements..."
-                            disabled={isLoading}
-                        />
-                        <button 
-                            className="chat-send" 
-                            onClick={sendMessage}
-                            disabled={isLoading}
-                        >
-                            Send
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        const ResultsPage = () => {
-            const [analysisData, setAnalysisData] = useState(null);
-            const [isChatOpen, setIsChatOpen] = useState(false);
-            const [currentVideoSegment, setCurrentVideoSegment] = useState(null);
-            const [userInputs, setUserInputs] = useState({
-                age: '',
-                gender: '',
-                weight: ''
-            });
-
-            useEffect(() => {
-                // Try to get data from URL params or localStorage
-                const urlParams = new URLSearchParams(window.location.search);
-                const dataParam = urlParams.get('data');
-                
-                if (dataParam) {
-                    try {
-                        const data = JSON.parse(decodeURIComponent(dataParam));
-                        setAnalysisData(data);
-                    } catch (e) {
-                        console.error('Error parsing analysis data:', e);
-                        setAnalysisData(mockAnalysisData);
-                    }
-                } else {
-                    // Use mock data for development
-                    setAnalysisData(mockAnalysisData);
-                }
-            }, []);
-
-            const handleInputChange = (field, value) => {
-                setUserInputs(prev => ({
-                    ...prev,
-                    [field]: value
-                }));
-            };
-
-            const handleVideoSegment = (segment) => {
-                setCurrentVideoSegment(segment);
-            };
-
-            if (!analysisData) {
-                return (
-                    <div className="container">
-                        <div className="loading" style={{margin: '50px auto'}}></div>
-                    </div>
-                );
-            }
-
-            return (
-                <div className={isChatOpen ? 'split-layout' : 'single-layout'}>
-                    {isChatOpen && (
-                        <ChatInterface
-                            analysisData={analysisData}
-                            isOpen={isChatOpen}
-                            onClose={() => setIsChatOpen(false)}
-                            onVideoSegment={handleVideoSegment}
-                        />
-                    )}
-                    
-                    <div className="container">
-                        <div className="header">
-                            <h1>🏋️ Analysis Results</h1>
-                            <p>Your {analysisData.drill_type} analysis is complete!</p>
-                        </div>
-
-                        <div className="video-section">
-                            <h2>📹 Video Analysis</h2>
-                            <VideoPlayer
-                                analysisData={analysisData}
-                                currentSegment={currentVideoSegment}
-                                onTimeUpdate={() => {}}
-                            />
-                        </div>
-
-                        {!isChatOpen && (
-                            <>
-                                <MetricsDashboard
-                                    analysisData={analysisData}
-                                    userInputs={userInputs}
-                                    onInputChange={handleInputChange}
-                                />
-                                
-                                <PerformanceChart analysisData={analysisData} />
-                            </>
-                        )}
-                    </div>
-
-                    <button 
-                        className="chat-button"
-                        onClick={() => setIsChatOpen(!isChatOpen)}
-                        title="AI Coach Chat"
-                    >
-                        💬
-                    </button>
-                </div>
-            );
-        };
-
-        ReactDOM.render(<ResultsPage />, document.getElementById('root'));
-    </script>
-    {% endraw %}
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script type="text/babel" src="{{ url_for('static', filename='results.js') }}"></script>
 </body>
 </html>
